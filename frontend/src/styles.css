@@ -156,6 +156,8 @@ h1 > span {
 .workspace {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
+  /* Extra document metadata must not stretch the row beyond the clipped workspace. */
+  grid-template-rows: minmax(0, 1fr);
   min-height: 650px;
   height: min(740px, calc(100dvh - 257px));
   border: 1px solid #dfe2d7;
@@ -170,6 +172,11 @@ h1 > span {
   padding: 27px 23px;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+.sidebar > * {
+  flex-shrink: 0;
 }
 .section-label {
   display: flex;
