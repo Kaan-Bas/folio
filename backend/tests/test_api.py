@@ -135,7 +135,7 @@ def test_missing_key_only_blocks_answers_not_local_indexing(settings, embedder):
         response = ask(client, document.json()["document_id"])
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "missing_api_key"
-    assert "GEMINI_API_KEY" in response.json()["error"]["message"]
+    assert "De LLM is nog niet ingesteld." in response.json()["error"]["message"]
 
 
 def test_provider_error_does_not_install_an_index(settings, generator):

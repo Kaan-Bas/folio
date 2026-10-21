@@ -170,7 +170,7 @@ describe('PDF assistant', () => {
       max_question_chars: 2000,
     })
     render(<App />)
-    expect(await screen.findByText(/Vul GEMINI_API_KEY/)).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('De LLM is nog niet ingesteld.')
     fireEvent.change(screen.getByLabelText('PDF uploaden'), {
       target: { files: [new File(['x'], 'wrong.txt', { type: 'text/plain' })] },
     })

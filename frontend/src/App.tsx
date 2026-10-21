@@ -46,8 +46,8 @@ export default function App() {
         )}
         {assistant.health && !assistant.health.configured && (
           <div role="status" className="configuration-banner">
-            Voor antwoorden is Gemini nog niet ingesteld. Vul GEMINI_API_KEY in de .env van de
-            backend in en herstart de backend. Embeddings worden lokaal gemaakt.
+            De LLM is nog niet ingesteld. Configureer de API-sleutel in de backend en herstart
+            de backend om antwoorden te genereren. Embeddings worden lokaal gemaakt.
           </div>
         )}
         <div className="workspace">

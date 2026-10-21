@@ -87,6 +87,7 @@ def test_incomplete_refused_or_malformed_gemini_response(sdk, reason, output, co
     with pytest.raises(AppError) as error:
         GeminiAnswerGenerator(settings).generate("Vraag?", [])
     assert error.value.code == code
+    assert "De LLM" in error.value.message
 
 
 def test_prompt_block_without_candidates(sdk):
@@ -120,6 +121,7 @@ def test_gemini_failures_are_safe_without_retries_or_fallback(sdk, http_status, 
     assert error.value.code == code
     assert error.value.status_code == status
     assert "secret provider body" not in error.value.message
+    assert "LLM" in error.value.message
     client.models.generate_content.assert_called_once()
     constructor.assert_called_once()
 
@@ -139,6 +141,7 @@ def test_gemini_network_errors(sdk, failure, code, status):
     assert error.value.code == code
     assert error.value.status_code == status
     assert "secret provider body" not in error.value.message
+    assert "LLM" in error.value.message
 
 
 def test_missing_key_never_constructs_a_client(sdk):
@@ -147,5 +150,5 @@ def test_missing_key_never_constructs_a_client(sdk):
     with pytest.raises(AppError) as error:
         GeminiAnswerGenerator(settings).generate("Vraag?", [])
     assert error.value.code == "missing_api_key"
-    assert "GEMINI_API_KEY" in error.value.message
+    assert "De LLM is nog niet ingesteld." in error.value.message
     constructor.assert_not_called()

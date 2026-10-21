@@ -21,7 +21,7 @@ def gemini_client(settings: Settings) -> Iterator[genai.Client]:
         raise AppError(
             503,
             "missing_api_key",
-            "Vul GEMINI_API_KEY in de .env van de backend in en herstart de backend.",
+            "De LLM is nog niet ingesteld. Configureer de API-sleutel in de backend en herstart de backend.",
         )
     try:
         # Explicit Developer API, bounded timeout in milliseconds, a single attempt, no fallback.
@@ -39,32 +39,32 @@ def gemini_client(settings: Settings) -> Iterator[genai.Client]:
             raise AppError(
                 429,
                 "provider_rate_limit",
-                "Het Gemini-quotum is bereikt. Controleer de limieten in Google AI Studio en probeer later opnieuw. Er wordt geen fallbackprovider gebruikt.",
+                "De gebruikslimiet van de LLM-provider is bereikt. Probeer later opnieuw of controleer de limieten bij je provider.",
             ) from exc
         if exc.code in (401, 403):
             raise AppError(
                 503,
                 "invalid_api_key",
-                "De Gemini API-sleutel is ongeldig of heeft geen toegang. Controleer je sleutel en project in Google AI Studio.",
+                "De API-sleutel voor de LLM is ongeldig of heeft geen toegang. Controleer de sleutel en toegangsrechten bij je provider.",
             ) from exc
         if exc.code in (408, 504):
             raise AppError(
-                504, "provider_timeout", "Gemini reageert te langzaam. Probeer opnieuw."
+                504, "provider_timeout", "De LLM reageert te langzaam. Probeer opnieuw."
             ) from exc
         raise AppError(
             502,
             "provider_error",
-            "Gemini kon de aanvraag niet verwerken. Controleer GEMINI_MODEL, de API-sleutel en modeltoegang in Google AI Studio, of probeer later opnieuw.",
+            "De LLM kon de aanvraag niet verwerken. Controleer de modelinstellingen, API-sleutel en modeltoegang, of probeer later opnieuw.",
         ) from exc
     except httpx.TimeoutException as exc:
         raise AppError(
-            504, "provider_timeout", "Gemini reageert te langzaam. Probeer opnieuw."
+            504, "provider_timeout", "De LLM reageert te langzaam. Probeer opnieuw."
         ) from exc
     except httpx.RequestError as exc:
         raise AppError(
             502,
             "provider_unavailable",
-            "Gemini is niet bereikbaar. Controleer je internetverbinding.",
+            "De LLM-provider is niet bereikbaar. Controleer je internetverbinding.",
         ) from exc
 
 
@@ -103,7 +103,7 @@ class GeminiAnswerGenerator:
             raise AppError(
                 502,
                 "incomplete_answer",
-                "Gemini gaf geen volledig antwoord of weigerde de aanvraag. Probeer de vraag opnieuw of formuleer deze korter.",
+                "De LLM gaf geen volledig antwoord of weigerde de aanvraag. Probeer de vraag opnieuw of formuleer deze korter.",
             )
         try:
             return GeneratedAnswer.model_validate_json(response.text)
@@ -111,5 +111,5 @@ class GeminiAnswerGenerator:
             raise AppError(
                 502,
                 "invalid_answer",
-                "Gemini gaf een onleesbaar antwoord. Probeer opnieuw.",
+                "De LLM gaf een onleesbaar antwoord. Probeer opnieuw.",
             ) from exc
