@@ -35,15 +35,9 @@ export default function App() {
       </header>
       <main>
         <div className="page-heading">
-          <div>
-            <div className="eyebrow">RUIMTE VOOR INZICHT</div>
-            <h1>
-              Ga in gesprek met je PDF<span>.</span>
-            </h1>
-          </div>
-          <div className="grounded-label">
-            <Icon name="check" size={16} /> Antwoorden met bronverwijzingen
-          </div>
+          <h1>
+            Ga in gesprek met je PDF<span>.</span>
+          </h1>
         </div>
         {assistant.connectionError && (
           <div role="alert" className="configuration-banner">

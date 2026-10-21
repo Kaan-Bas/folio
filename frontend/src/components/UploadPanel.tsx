@@ -15,9 +15,6 @@ export function UploadPanel({ document, uploading, maxMb, onUpload }: Props) {
 
   return (
     <aside className="sidebar">
-      <div className="section-label">
-        WERKRUIMTE <span>01</span>
-      </div>
       <h2>Jouw document</h2>
       <p className="muted sidebar-intro">Eén PDF. Alle antwoorden binnen handbereik.</p>
       <input

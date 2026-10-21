@@ -124,7 +124,7 @@ main {
 .page-heading {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   margin-bottom: 29px;
   gap: 20px;
 }
@@ -144,14 +144,6 @@ h1 {
 }
 h1 > span {
   color: #8b9e78;
-}
-.grounded-label {
-  font-size: 10px;
-  color: #78846e;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding-bottom: 5px;
 }
 .workspace {
   display: grid;
@@ -186,14 +178,11 @@ h1 > span {
   font-weight: 600;
   color: #8a907d;
 }
-.section-label > span {
-  color: #a2a98e;
-}
 .sidebar h2 {
   font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.5px;
-  margin-top: 21px;
+  margin-top: 0;
 }
 .muted {
   color: var(--muted);
@@ -451,10 +440,6 @@ h1 > span {
 .suggestions button:disabled {
   color: #929986;
 }
-.suggestion-number {
-  font-size: 8px;
-  color: #a7af9a;
-}
 .suggestions button > span:last-child {
   margin-left: auto;
   color: #a9b19e;
@@ -710,9 +695,6 @@ h1 > span {
   .empty-state {
     margin-top: 18px;
   }
-  .grounded-label {
-    display: none;
-  }
   .context-label {
     display: none;
   }
@@ -759,7 +741,6 @@ h1 > span {
     border-bottom: 1px solid var(--border);
     padding: 19px;
   }
-  .sidebar > .section-label,
   .sidebar h2,
   .sidebar-intro,
   .workflow,

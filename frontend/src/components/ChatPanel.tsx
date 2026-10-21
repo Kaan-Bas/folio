@@ -65,7 +65,7 @@ export function ChatPanel({
                 : 'Upload een PDF en stel je vraag. Krijg een helder antwoord, met verwijzingen naar de juiste pagina’s.'}
             </p>
             <div className="suggestions">
-              {suggestions.map((suggestion, index) => (
+              {suggestions.map((suggestion) => (
                 <button
                   key={suggestion}
                   type="button"
@@ -74,7 +74,6 @@ export function ChatPanel({
                     void onAsk(suggestion)
                   }}
                 >
-                  <span className="suggestion-number">0{index + 1}</span>
                   {suggestion}
                   <span aria-hidden="true">↗</span>
                 </button>
