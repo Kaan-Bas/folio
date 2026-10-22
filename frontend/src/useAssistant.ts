@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { ApiError, askQuestion, getHealth, uploadDocument } from './api'
-import type { ChatMessage, HealthResponse, UploadedDocument } from './types'
+import { ApiError, askQuestion, getHealth, investigateReturn, uploadDocument } from './api'
+import type {
+  AgentResponse,
+  AssistantActivity,
+  ChatMessage,
+  HealthResponse,
+  UploadedDocument,
+} from './types'
 import { validatePdf } from './validation'
 
 function messageFrom(error: unknown): string {
@@ -13,7 +19,8 @@ export function useAssistant() {
   const [document, setDocument] = useState<UploadedDocument | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [busy, setBusy] = useState<'upload' | 'answer' | null>(null)
+  const [busy, setBusy] = useState<AssistantActivity>(null)
+  const [agentResult, setAgentResult] = useState<AgentResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const generation = useRef(0)
   const activeRequest = useRef<AbortController | null>(null)
@@ -45,6 +52,7 @@ export function useAssistant() {
     setDocument(null)
     setFile(null)
     setMessages([])
+    setAgentResult(null)
     setError(null)
     setBusy('upload')
     try {
@@ -95,6 +103,7 @@ export function useAssistant() {
           setDocument(null)
           setFile(null)
           setMessages([])
+          setAgentResult(null)
         }
       }
       return false
@@ -103,5 +112,53 @@ export function useAssistant() {
     }
   }
 
-  return { health, connectionError, document, file, messages, busy, error, upload, ask }
+  async function investigate(orderId: string | null, instruction: string): Promise<boolean> {
+    if (!document || busy) return false
+    const version = generation.current
+    const controller = new AbortController()
+    activeRequest.current = controller
+    setAgentResult(null)
+    setBusy('agent')
+    setError(null)
+    try {
+      const result = await investigateReturn(
+        document.document_id,
+        instruction,
+        orderId,
+        controller.signal,
+      )
+      if (generation.current !== version) return false
+      setAgentResult(result)
+      if (
+        result.error &&
+        ['no_document', 'document_replaced', 'upload_superseded'].includes(result.error.code)
+      ) {
+        setDocument(null)
+        setFile(null)
+        setMessages([])
+      }
+      return result.status === 'completed'
+    } catch (failure) {
+      if (generation.current === version && !controller.signal.aborted) {
+        setError(messageFrom(failure))
+      }
+      return false
+    } finally {
+      if (generation.current === version) setBusy(null)
+    }
+  }
+
+  return {
+    health,
+    connectionError,
+    document,
+    file,
+    messages,
+    busy,
+    error,
+    upload,
+    ask,
+    agentResult,
+    investigate,
+  }
 }

@@ -8,7 +8,7 @@ from app.embeddings import Embedder
 from app.errors import AppError
 from app.llm import AnswerGenerator
 from app.pdf import extract_pdf
-from app.retrieval import VectorIndex
+from app.retrieval import SearchHit, VectorIndex
 from app.schemas import QuestionRequest, QuestionResponse, Source, UploadResponse
 
 INSUFFICIENT_CONTEXT = "Ik kan deze vraag niet beantwoorden op basis van de beschikbare PDF-fragmenten. Er is onvoldoende informatie in de gevonden context."
@@ -18,6 +18,8 @@ INSUFFICIENT_CONTEXT = "Ik kan deze vraag niet beantwoorden op basis van de besc
 class Document:
     id: UUID
     index: VectorIndex
+    filename: str
+    page_count: int
 
 
 class DocumentStore:
@@ -78,7 +80,14 @@ class RAGService:
                 "Deze PDF levert te veel tekstfragmenten op. Gebruik een kleiner document.",
             )
         vectors = self.embedder.embed([chunk.text for chunk in chunks])
-        self.store.install(Document(id=revision, index=VectorIndex(chunks, vectors)))
+        self.store.install(
+            Document(
+                id=revision,
+                index=VectorIndex(chunks, vectors),
+                filename=filename,
+                page_count=pdf.total_pages,
+            )
+        )
         return UploadResponse(
             document_id=revision,
             filename=filename,
@@ -87,12 +96,19 @@ class RAGService:
             chunk_count=len(chunks),
         )
 
+    def search(self, document_id: UUID, query: str) -> list[SearchHit]:
+        """Shared retrieval for Document Chat and the agent; never build a second index."""
+        document = self.store.get(document_id)
+        vector = self.embedder.embed([query], is_query=True)
+        hits = document.index.search(
+            vector, top_k=self.settings.top_k, min_similarity=self.settings.min_similarity
+        )
+        self.store.get(document_id)
+        return hits
+
     def ask(self, request: QuestionRequest) -> QuestionResponse:
         document = self.store.get(request.document_id)
-        query = self.embedder.embed([request.question], is_query=True)
-        hits = document.index.search(
-            query, top_k=self.settings.top_k, min_similarity=self.settings.min_similarity
-        )
+        hits = self.search(request.document_id, request.question)
         fallback = QuestionResponse(
             answer=INSUFFICIENT_CONTEXT, sources=[], insufficient_context=True
         )
@@ -104,14 +120,7 @@ class RAGService:
         self.store.get(document.id)
         if not generated.sufficient_context:
             return fallback
-        allowed = {hit.chunk.id: hit for hit in hits}
-        cited_ids = list(dict.fromkeys(generated.cited_chunk_ids))
-        if not cited_ids or any(chunk_id not in allowed for chunk_id in cited_ids):
-            raise AppError(
-                502,
-                "invalid_citations",
-                "Het antwoord bevat geen geldige bronverwijzingen. Probeer je vraag opnieuw.",
-            )
+        sources = sources_for(hits, generated.cited_chunk_ids)
         if not generated.answer.strip():
             raise AppError(
                 502, "empty_answer", "De AI-provider gaf een leeg antwoord. Probeer opnieuw."
@@ -119,13 +128,26 @@ class RAGService:
         return QuestionResponse(
             answer=generated.answer.strip(),
             insufficient_context=False,
-            sources=[
-                Source(
-                    chunk_id=chunk_id,
-                    page=allowed[chunk_id].chunk.page,
-                    text=allowed[chunk_id].chunk.text,
-                    score=allowed[chunk_id].score,
-                )
-                for chunk_id in cited_ids
-            ],
+            sources=sources,
         )
+
+
+def sources_for(hits: list[SearchHit], cited_ids: list[str]) -> list[Source]:
+    """Resolve only retrieved IDs to metadata, for both chat and agent responses."""
+    allowed = {hit.chunk.id: hit for hit in hits}
+    unique_ids = list(dict.fromkeys(cited_ids))
+    if not unique_ids or any(chunk_id not in allowed for chunk_id in unique_ids):
+        raise AppError(
+            502,
+            "invalid_citations",
+            "Het antwoord bevat geen geldige bronverwijzingen. Probeer je vraag opnieuw.",
+        )
+    return [
+        Source(
+            chunk_id=chunk_id,
+            page=allowed[chunk_id].chunk.page,
+            text=allowed[chunk_id].chunk.text,
+            score=allowed[chunk_id].score,
+        )
+        for chunk_id in unique_ids
+    ]

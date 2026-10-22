@@ -1,0 +1,35 @@
+[
+  {
+    "order_id": "DEMO-1001",
+    "order_date": "2026-10-01",
+    "delivered_at": "2026-10-05",
+    "return_requested_at": "2026-10-20",
+    "product": "Bureaulamp",
+    "price_eur": "49.95",
+    "order_status": "delivered",
+    "return_reason": "Past niet op het bureau",
+    "product_condition": "Ongebruikt, originele verpakking"
+  },
+  {
+    "order_id": "DEMO-1002",
+    "order_date": "2026-07-28",
+    "delivered_at": "2026-08-01",
+    "return_requested_at": "2026-10-20",
+    "product": "Rugzak",
+    "price_eur": "79.00",
+    "order_status": "delivered",
+    "return_reason": "Andere kleur gewenst",
+    "product_condition": "Ongebruikt, originele verpakking"
+  },
+  {
+    "order_id": "DEMO-1003",
+    "order_date": "2026-10-09",
+    "delivered_at": "2026-10-10",
+    "return_requested_at": "2026-10-20",
+    "product": "Digitale softwarelicentie",
+    "price_eur": "29.95",
+    "order_status": "delivered",
+    "return_reason": "Verkeerd product gekozen",
+    "product_condition": "Licentie is geactiveerd"
+  }
+]

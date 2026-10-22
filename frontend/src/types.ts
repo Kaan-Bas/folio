@@ -33,3 +33,22 @@ export interface ChatMessage {
   sources?: Source[]
   insufficientContext?: boolean
 }
+
+export type AssistantActivity = 'upload' | 'answer' | 'agent' | null
+
+export interface AgentToolCall {
+  sequence: number
+  name: string
+  status: 'success' | 'not_found' | 'error' | 'blocked'
+  message: string
+}
+
+export interface AgentResponse {
+  answer: string
+  sources: Source[]
+  tool_calls: AgentToolCall[]
+  status: 'completed' | 'insufficient_information' | 'limit_reached' | 'error'
+  error: { code: string; message: string } | null
+  disclaimer: string
+  concept_advice: true
+}

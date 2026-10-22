@@ -1,4 +1,4 @@
-import type { Answer, HealthResponse, UploadedDocument } from './types'
+import type { AgentResponse, Answer, HealthResponse, UploadedDocument } from './types'
 
 // The only frontend environment setting is a public URL, never an API key.
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000').replace(/\/$/, '')
@@ -70,6 +70,20 @@ export function askQuestion(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ document_id: documentId, question }),
+    signal,
+  })
+}
+
+export function investigateReturn(
+  documentId: string,
+  instruction: string,
+  orderId: string | null,
+  signal?: AbortSignal,
+): Promise<AgentResponse> {
+  return request('/api/agent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ document_id: documentId, instruction, order_id: orderId }),
     signal,
   })
 }

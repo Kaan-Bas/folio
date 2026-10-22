@@ -3,13 +3,14 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import * as api from './api'
-import type { Answer, UploadedDocument } from './types'
+import type { AgentResponse, Answer, UploadedDocument } from './types'
 
 vi.mock('./api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./api')>()),
   getHealth: vi.fn(),
   uploadDocument: vi.fn(),
   askQuestion: vi.fn(),
+  investigateReturn: vi.fn(),
 }))
 
 const document: UploadedDocument = {
@@ -23,6 +24,22 @@ const answer: Answer = {
   answer: 'De fiets is blauw.',
   insufficient_context: false,
   sources: [{ chunk_id: 'p3-c0', page: 3, text: 'De fiets heeft een blauwe kleur.', score: 0.9 }],
+}
+const agentAdvice: AgentResponse = {
+  answer: 'Conceptadvies: de bestelling valt binnen de retourtermijn.',
+  sources: answer.sources,
+  tool_calls: [
+    {
+      sequence: 1,
+      name: 'search_policy',
+      status: 'success',
+      message: 'Beleidsfragmenten gevonden.',
+    },
+  ],
+  status: 'completed',
+  error: null,
+  concept_advice: true,
+  disclaimer: 'Conceptadvies met fictieve gegevens. Geen definitief terugbetalingsbesluit.',
 }
 
 async function uploadFile(name = 'eerste.pdf') {
@@ -40,6 +57,7 @@ beforeEach(() => {
   })
   vi.mocked(api.uploadDocument).mockResolvedValue(document)
   vi.mocked(api.askQuestion).mockResolvedValue(answer)
+  vi.mocked(api.investigateReturn).mockResolvedValue(agentAdvice)
   Object.defineProperty(URL, 'createObjectURL', {
     configurable: true,
     value: vi.fn(() => 'blob:local-pdf'),
@@ -176,5 +194,174 @@ describe('PDF assistant', () => {
     })
     expect(await screen.findByRole('alert')).toHaveTextContent('PDF-bestand')
     expect(api.uploadDocument).not.toHaveBeenCalled()
+  })
+
+  it('offers a separate agent mode with validated order input, advice, sources and tool statuses', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: 'AI Agent' }))
+    expect(screen.getByRole('button', { name: 'Onderzoek starten' })).toBeDisabled()
+    vi.mocked(api.uploadDocument).mockResolvedValueOnce({
+      ...document,
+      filename: 'refund_policy.pdf',
+    })
+    await uploadFile('refund_policy.pdf')
+    await user.type(screen.getByLabelText(/Fictieve order-ID/), 'demo-1001')
+    await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
+    expect(await screen.findByText(agentAdvice.answer)).toBeInTheDocument()
+    expect(api.investigateReturn).toHaveBeenCalledWith(
+      'first-id',
+      expect.stringContaining('retourbeleid'),
+      'DEMO-1001',
+      expect.any(AbortSignal),
+    )
+    expect(screen.getByText('Retourbeleid doorzoeken')).toBeInTheDocument()
+    expect(screen.getByText('Geslaagd')).toBeInTheDocument()
+    expect(screen.getByText(agentAdvice.disclaimer)).toBeInTheDocument()
+    await user.click(screen.getByText('Pagina 3'))
+    expect(screen.getByRole('link', { name: /Open pagina 3/ })).toHaveAttribute(
+      'href',
+      'blob:local-pdf#page=3',
+    )
+    expect(api.askQuestion).not.toHaveBeenCalled()
+  })
+
+  it('allows a policy-only agent instruction without an order lookup', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await uploadFile()
+    await user.click(screen.getByRole('button', { name: 'AI Agent' }))
+    await user.clear(screen.getByLabelText('Opdracht'))
+    await user.type(screen.getByLabelText('Opdracht'), 'Wat is de retourtermijn?')
+    await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
+    expect(await screen.findByText(agentAdvice.answer)).toBeInTheDocument()
+    expect(api.investigateReturn).toHaveBeenCalledWith(
+      'first-id',
+      'Wat is de retourtermijn?',
+      null,
+      expect.any(AbortSignal),
+    )
+  })
+
+  it('shows partial tool execution when the agent reaches its limit', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.investigateReturn).mockResolvedValueOnce({
+      ...agentAdvice,
+      status: 'limit_reached',
+      answer: 'De limiet is bereikt.',
+      sources: [],
+      error: { code: 'tool_limit', message: 'Maximaal vijf toolaanroepen.' },
+      tool_calls: [
+        { sequence: 1, name: 'unknown_tool', status: 'blocked', message: 'Niet toegestaan.' },
+      ],
+    })
+    render(<App />)
+    await uploadFile()
+    await user.click(screen.getByRole('button', { name: 'AI Agent' }))
+    await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
+    expect(await screen.findByText('Toollimiet bereikt')).toBeInTheDocument()
+    expect(screen.getByText('Geblokkeerd')).toBeInTheDocument()
+    expect(screen.queryByText('GEBRUIKTE BRONNEN')).not.toBeInTheDocument()
+  })
+
+  it('discards an agent result arriving after a replacement upload', async () => {
+    const user = userEvent.setup()
+    let resolveAgent!: (value: AgentResponse) => void
+    vi.mocked(api.investigateReturn).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveAgent = resolve
+      }),
+    )
+    render(<App />)
+    await uploadFile()
+    await user.click(screen.getByRole('button', { name: 'AI Agent' }))
+    await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
+    expect(screen.getByRole('button', { name: 'Document Chat' })).toBeDisabled()
+    vi.mocked(api.uploadDocument).mockResolvedValueOnce({
+      ...document,
+      document_id: 'second-id',
+      filename: 'nieuw.pdf',
+    })
+    await uploadFile('nieuw.pdf')
+    await act(async () => {
+      resolveAgent(agentAdvice)
+    })
+    expect(screen.queryByText(agentAdvice.answer)).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Uitgevoerde tools' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Onderzoek starten' })).toBeEnabled()
+  })
+
+  it('preserves document chat messages when switching modes', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await uploadFile()
+    await user.type(screen.getByLabelText('Je vraag over de PDF'), 'Welke kleur?{Enter}')
+    await screen.findByText(answer.answer)
+    await user.click(screen.getByRole('button', { name: 'AI Agent' }))
+    await user.click(screen.getByRole('button', { name: 'Document Chat' }))
+    expect(screen.getByText(answer.answer)).toBeInTheDocument()
+    expect(screen.getByText('Welke kleur?', { selector: 'p' })).toBeInTheDocument()
+  })
+
+  it('rejects invalid order IDs before sending an agent request', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await uploadFile()
+    await user.click(screen.getByRole('button', { name: 'AI Agent' }))
+    await user.type(screen.getByLabelText(/Fictieve order-ID/), 'REAL-123')
+    await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('fictieve order-ID')
+    expect(api.investigateReturn).not.toHaveBeenCalled()
+  })
+
+  it('keeps agent input available after a network failure', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.investigateReturn).mockRejectedValueOnce(
+      new Error('Kan de backend niet bereiken.'),
+    )
+    render(<App />)
+    await uploadFile()
+    await user.click(screen.getByRole('button', { name: 'AI Agent' }))
+    await user.type(screen.getByLabelText(/Fictieve order-ID/), 'DEMO-1001')
+    await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Kan de backend niet bereiken')
+    expect(screen.getByLabelText(/Fictieve order-ID/)).toHaveValue('DEMO-1001')
+    expect(screen.getByRole('button', { name: 'Onderzoek starten' })).toBeEnabled()
+  })
+
+  it('requires a new upload when the agent reports a missing document', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.investigateReturn).mockResolvedValueOnce({
+      ...agentAdvice,
+      status: 'error',
+      answer: 'Upload eerst een PDF.',
+      sources: [],
+      tool_calls: [],
+      error: { code: 'no_document', message: 'Upload eerst een PDF.' },
+    })
+    render(<App />)
+    await uploadFile()
+    await user.click(screen.getByRole('button', { name: 'AI Agent' }))
+    await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Upload eerst een PDF.')
+    expect(screen.getByRole('button', { name: 'Onderzoek starten' })).toBeDisabled()
+  })
+
+  it('clears earlier agent advice when document chat discovers a backend restart', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await uploadFile()
+    await user.click(screen.getByRole('button', { name: 'AI Agent' }))
+    await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
+    await screen.findByText(agentAdvice.answer)
+    await user.click(screen.getByRole('button', { name: 'Document Chat' }))
+    vi.mocked(api.askQuestion).mockRejectedValueOnce(
+      new api.ApiError('Upload opnieuw.', 'no_document', 404),
+    )
+    await user.type(screen.getByLabelText('Je vraag over de PDF'), 'Wat staat er?{Enter}')
+    await screen.findByRole('alert')
+    await user.click(screen.getByRole('button', { name: 'AI Agent' }))
+    expect(screen.queryByText(agentAdvice.answer)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Onderzoek starten' })).toBeDisabled()
   })
 })

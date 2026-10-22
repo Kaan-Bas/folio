@@ -127,6 +127,211 @@ main {
   align-items: center;
   margin-bottom: 29px;
   gap: 20px;
+  flex-wrap: wrap;
+}
+.mode-switch {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #dfe2d7;
+  border-radius: 10px;
+  background: #ecefe5;
+}
+.mode-switch button {
+  border: 0;
+  border-radius: 7px;
+  padding: 9px 15px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #65715c;
+  background: transparent;
+}
+.mode-switch button[aria-pressed='true'] {
+  background: var(--green);
+  color: #fff;
+  box-shadow: 0 2px 4px #335b4817;
+}
+.mode-switch button:disabled {
+  opacity: 0.65;
+}
+.agent-content {
+  min-height: 0;
+  overflow-y: auto;
+  flex: 1;
+  padding: 28px 32px;
+  scrollbar-width: thin;
+  scrollbar-color: #d5ddca transparent;
+}
+.agent-intro h2 {
+  font-family: Manrope, sans-serif;
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.8px;
+  line-height: 1.4;
+}
+.agent-intro h2 > span {
+  color: #8b9e78;
+}
+.agent-intro > p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #687260;
+  margin-top: 9px;
+}
+.agent-disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px 15px;
+  margin: 20px 0;
+  border: 1px solid #dfe5d6;
+  border-radius: 8px;
+  background: #f4f7ee;
+  color: #586e4b;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.agent-disclaimer svg {
+  margin-top: 2px;
+}
+.agent-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.agent-form label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #4f5c46;
+}
+.agent-form label > span {
+  font-weight: 400;
+  color: #6d7863;
+}
+.agent-form input,
+.agent-form textarea {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #dce3d2;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #3e5037;
+  background: #fff;
+}
+.agent-form input:focus-visible,
+.agent-form textarea:focus-visible {
+  outline: 2px solid #8eab90;
+  outline-offset: 2px;
+}
+.agent-form input:disabled,
+.agent-form textarea:disabled {
+  background: #f7f8f3;
+  color: #7d8872;
+}
+.agent-form textarea {
+  resize: vertical;
+  min-height: 100px;
+  max-height: 180px;
+}
+.agent-field-hint {
+  font-size: 10px;
+  line-height: 1.8;
+  color: #6d7863;
+  margin: 0 0 9px;
+}
+.agent-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+.agent-form-actions > span {
+  font-size: 10px;
+  color: #6d7863;
+}
+.agent-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--green);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 11px 16px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.agent-submit:disabled {
+  background: #e9eee0;
+  color: #748367;
+}
+.agent-submit:hover:not(:disabled) {
+  background: #244735;
+}
+.agent-error {
+  margin: 15px 0;
+}
+.agent-result,
+.agent-tools {
+  margin-top: 26px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+.agent-result-heading,
+.agent-tools h3,
+.agent-tools li > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.agent-result h3,
+.agent-tools h3 {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0 0 13px;
+}
+.agent-status,
+.tool-status,
+.agent-tools h3 > span {
+  font-size: 9px;
+  font-weight: 400;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: #f0f4e9;
+  color: #4d6c3f;
+}
+.agent-status:not(.completed),
+.tool-status:not(.success) {
+  background: #faf2e3;
+  color: #806330;
+}
+.agent-tools ol {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.agent-tools li {
+  padding: 11px 12px;
+  border: 1px solid #e3e8db;
+  border-radius: 7px;
+  margin-bottom: 8px;
+}
+.agent-tools strong {
+  font-size: 11px;
+  font-weight: 500;
+  color: #4f5c46;
+}
+.agent-tools li p {
+  font-size: 10px;
+  color: #68755c;
+  margin-top: 5px;
+  line-height: 1.8;
 }
 .eyebrow {
   font-size: 9px;
@@ -722,6 +927,22 @@ h1 > span {
   }
   .page-heading {
     margin-bottom: 22px;
+  }
+  .mode-switch {
+    width: 100%;
+  }
+  .mode-switch button {
+    flex: 1;
+  }
+  .agent-content {
+    padding: 22px 20px;
+  }
+  .agent-intro h2 {
+    font-size: 21px;
+  }
+  .agent-form-actions > span,
+  .agent-submit {
+    width: 100%;
   }
   h1 {
     font-size: 27px;

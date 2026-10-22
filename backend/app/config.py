@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     gemini_api_key: SecretStr = SecretStr("")
     gemini_model: str = Field(default="gemini-3.5-flash-lite", min_length=1)
     gemini_timeout_seconds: float = Field(default=45, gt=0, le=180)
+    agent_timeout_seconds: float = Field(default=90, gt=0, le=300)
     embedding_model: str = Field(default="intfloat/multilingual-e5-small", min_length=1)
     embedding_cache_dir: Path = ROOT / ".model_cache"
     embedding_local_files_only: bool = False

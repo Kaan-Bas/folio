@@ -8,10 +8,12 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
 
+from app.agent import AgentModel, AgentService
+from app.agent_schemas import AgentRequest, AgentResponse
 from app.config import Settings
 from app.embeddings import Embedder, LocalEmbedder
 from app.errors import AppError
-from app.gemini import GeminiAnswerGenerator
+from app.gemini import GeminiAgentModel, GeminiAnswerGenerator
 from app.llm import AnswerGenerator
 from app.schemas import (
     ErrorResponse,
@@ -34,6 +36,7 @@ def create_app(
     *,
     embedder: Embedder | None = None,
     generator: AnswerGenerator | None = None,
+    agent_model: AgentModel | None = None,
 ) -> FastAPI:
     config = settings if settings is not None else Settings()
     service = RAGService(
@@ -50,6 +53,10 @@ def create_app(
         },
     )
     app.state.rag = service
+    app.state.agent = AgentService(
+        service,
+        agent_model if agent_model is not None else GeminiAgentModel(config),
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=config.cors_origins,
@@ -120,6 +127,10 @@ def create_app(
     @app.post("/api/questions", response_model=QuestionResponse)
     def ask(request: QuestionRequest) -> QuestionResponse:
         return service.ask(request)
+
+    @app.post("/api/agent", response_model=AgentResponse)
+    def investigate(request: AgentRequest) -> AgentResponse:
+        return app.state.agent.run(request)
 
     return app
 

@@ -16,7 +16,9 @@ from app.retrieval import SearchHit
 
 
 @contextmanager
-def gemini_client(settings: Settings) -> Iterator[genai.Client]:
+def gemini_client(
+    settings: Settings, *, timeout_seconds: float | None = None
+) -> Iterator[genai.Client]:
     if not settings.configured:
         raise AppError(
             503,
@@ -29,7 +31,17 @@ def gemini_client(settings: Settings) -> Iterator[genai.Client]:
             api_key=settings.gemini_api_key.get_secret_value(),
             vertexai=False,
             http_options=types.HttpOptions(
-                timeout=int(settings.gemini_timeout_seconds * 1000),
+                timeout=max(
+                    1,
+                    int(
+                        (
+                            timeout_seconds
+                            if timeout_seconds is not None
+                            else settings.gemini_timeout_seconds
+                        )
+                        * 1000
+                    ),
+                ),
                 retry_options=types.HttpRetryOptions(attempts=1),
             ),
         ) as client:
@@ -113,3 +125,49 @@ class GeminiAnswerGenerator:
                 "invalid_answer",
                 "De LLM gaf een onleesbaar antwoord. Probeer opnieuw.",
             ) from exc
+
+
+class GeminiAgentModel:
+    """Manual function calling: the SDK must never dispatch tools on our behalf."""
+
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+
+    def next_turn(
+        self, history: Sequence[types.Content], *, remaining_calls: int, timeout_seconds: float
+    ) -> types.Content:
+        from app.agent import AGENT_SYSTEM_PROMPT
+        from app.agent_tools import TOOL_SPECS
+
+        declarations = [
+            types.FunctionDeclaration(
+                name=name,
+                description=description,
+                parameters_json_schema=schema.model_json_schema(),
+            )
+            for name, (schema, description) in TOOL_SPECS.items()
+        ]
+        with gemini_client(self.settings, timeout_seconds=timeout_seconds) as client:
+            response = client.models.generate_content(
+                model=self.settings.gemini_model,
+                contents=list(history),
+                config=types.GenerateContentConfig(
+                    system_instruction=AGENT_SYSTEM_PROMPT
+                    + f"\nResterend toolbudget: {remaining_calls}. Geef bij nul alleen het eindantwoord.",
+                    tools=[types.Tool(function_declarations=declarations)],
+                    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+                    tool_config=types.ToolConfig(
+                        function_calling_config=types.FunctionCallingConfig(
+                            mode="AUTO" if remaining_calls else "NONE",
+                        )
+                    ),
+                    max_output_tokens=4096,
+                ),
+            )
+        if (
+            not response.candidates
+            or response.candidates[0].finish_reason != types.FinishReason.STOP
+            or not response.candidates[0].content
+        ):
+            raise AppError(502, "incomplete_answer", "De LLM gaf geen volledige agentrespons.")
+        return response.candidates[0].content

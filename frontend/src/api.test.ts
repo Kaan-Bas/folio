@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ApiError, askQuestion, getHealth, uploadDocument } from './api'
+import { ApiError, askQuestion, getHealth, investigateReturn, uploadDocument } from './api'
 
 describe('API contract', () => {
   it('uploads multipart without overriding the browser content type', async () => {
@@ -28,21 +28,37 @@ describe('API contract', () => {
   it('surfaces the safe backend error', async () => {
     vi.stubGlobal(
       'fetch',
-      vi
-        .fn()
-        .mockResolvedValue({
-          ok: false,
-          status: 503,
-          json: async () => ({
-            error: { code: 'missing_api_key', message: 'Vul de API-sleutel in.' },
-          }),
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 503,
+        json: async () => ({
+          error: { code: 'missing_api_key', message: 'Vul de API-sleutel in.' },
         }),
+      }),
     )
     await expect(getHealth()).rejects.toMatchObject({
       message: 'Vul de API-sleutel in.',
       code: 'missing_api_key',
       status: 503,
     })
+  })
+  it('sends agent instructions and optional fictional order ID with the current document', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ status: 'completed' }) })
+    vi.stubGlobal('fetch', fetchMock)
+    const controller = new AbortController()
+    await investigateReturn('current-id', 'Onderzoek retour.', 'DEMO-1001', controller.signal)
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toMatch(/\/api\/agent$/)
+    expect(JSON.parse(options.body)).toEqual({
+      document_id: 'current-id',
+      instruction: 'Onderzoek retour.',
+      order_id: 'DEMO-1001',
+    })
+    expect(options.signal).toBe(controller.signal)
+    await investigateReturn('current-id', 'Wat is de retourtermijn?', null)
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).order_id).toBeNull()
   })
   it('explains network failures', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { ChatMessage, UploadedDocument } from '../types'
+import type { AssistantActivity, ChatMessage, UploadedDocument } from '../types'
 import { Composer } from './Composer'
 import { Icon } from './Icon'
 import { Sources } from './Sources'
@@ -13,7 +13,7 @@ const suggestions = [
 interface Props {
   document: UploadedDocument | null
   messages: ChatMessage[]
-  busy: 'upload' | 'answer' | null
+  busy: AssistantActivity
   pdfUrl: string | null
   maxQuestionLength: number
   error: string | null
