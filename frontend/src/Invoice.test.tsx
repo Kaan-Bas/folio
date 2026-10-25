@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+import { openAgent } from './test/navigation'
 import * as api from './api'
 import { downloadInvoiceJson } from './invoiceExport'
 import type { InvoiceResponse } from './types'
@@ -100,7 +101,7 @@ async function upload() {
 async function open() {
   const user = userEvent.setup()
   render(<App />)
-  await user.click(screen.getByRole('button', { name: 'Invoice Processing' }))
+  await openAgent(user, 'Invoice Processing Agent')
   return user
 }
 
@@ -135,8 +136,8 @@ describe('Invoice Processing', () => {
     await user.click(screen.getByLabelText('Lokaal als gecontroleerd markeren'))
     await user.click(screen.getByRole('button', { name: 'Exporteer JSON' }))
     expect(downloadInvoiceJson).toHaveBeenCalledWith(result, true)
-    await user.click(screen.getByRole('button', { name: 'Document Chat' }))
-    await user.click(screen.getByRole('button', { name: 'Invoice Processing' }))
+    await user.click(screen.getByRole('link', { name: 'Document Chat' }))
+    await openAgent(user, 'Invoice Processing Agent')
     expect(screen.getByLabelText('Lokaal als gecontroleerd markeren')).toBeChecked()
     await user.click(screen.getByRole('button', { name: 'Analyseer factuur' }))
     await screen.findByText(result.summary)

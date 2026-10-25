@@ -13,12 +13,30 @@ De applicatie gebruikt Retrieval-Augmented Generation (RAG): relevante tekst wor
 - Antwoorden bekijken met geciteerde tekstfragmenten en links naar de bronpagina's.
 - Een melding bij onvoldoende context, ontbrekende configuratie of verwerkingsfouten.
 - Een document vervangen, waarbij de vorige index en de chat worden gewist.
-- Wisselen tussen Document Chat, Refund Review, Document Comparison en Invoice Processing.
+- Document Chat direct openen en gespecialiseerde agents ontdekken in een aparte agentbibliotheek.
 - Factuurgegevens extraheren, deterministisch controleren, lokaal als beoordeeld markeren en naar JSON exporteren.
 - De agent zelf tools laten kiezen voor beleid zoeken, fictieve orders lezen en kalenderdagen berekenen.
 - Conceptadvies bekijken met een overzicht van uitgevoerde tools en hun status, zonder financiële acties.
 
 De interface en foutmeldingen zijn Nederlandstalig. Het taalmodel krijgt de instructie om in de taal van de vraag te antwoorden.
+
+## Navigatie en agentbibliotheek
+
+De hoofdnavigatie bevat **Document Chat** en **AI Agents**. Document Chat is de zelfstandige RAG-chat. De agentbibliotheek groepeert de bestaande agents op hun toepassing:
+
+| Categorie | Agent |
+| --- | --- |
+| General & Productivity | Document Comparison Agent |
+| E-commerce & Customer Service | Refund Review Agent |
+| Finance & Administration | Invoice Processing Agent |
+
+De categorieën in de zijbalk filteren de bibliotheek. Een agentkaart opent de bestaande werkinterface, met de actieve agentnaam, categorie, een teruglink en een keuzelijst om direct van agent te wisselen. Op tablet en mobiel is de hoofdnavigatie uitklapbaar via **Navigatie openen**.
+
+De frontend gebruikt native hashadressen, zoals `#/chat`, `#/agents`, `#/agents/document-comparison` en `#/agents/category/finance-administration`. Deze adressen kunnen direct worden geopend; de terug- en vooruitknoppen van de browser volgen de navigatie. Er is geen routerdependency of serverconfiguratie voor routeherschrijving nodig.
+
+Navigeren bewaart uploads, chatberichten, conceptopdrachten, resultaten en de lokale factuurreview binnen het huidige browservenster. Een lopend verzoek wordt door navigeren niet geannuleerd. Document Chat, Refund Review en Invoice Processing blijven één document delen: een nieuwe upload vervangt dat document en wist de bijbehorende resultaten. Document Comparison houdt een onafhankelijk documentpaar bij. Vernieuwen van de pagina wist de frontendstatus; een directe URL herstelt geen documenten of eerdere resultaten.
+
+`frontend/src/agents.ts` bevat de getypeerde agent- en categorieconfiguratie. De bibliotheek, categorienavigatie en agentkeuzelijst gebruiken deze registratie. Een nieuwe agent wordt daar ingedeeld; een daadwerkelijk nieuwe werkinterface wordt daarnaast in `App.tsx` gekoppeld aan een eigen `screen`. De bestaande agentpanelen en API-contracten blijven afzonderlijk van deze navigatie.
 
 ## Installatie
 
@@ -442,6 +460,8 @@ backend/
 frontend/
   src/
     App.tsx          Samenstelling van de interface
+    agents.ts        Getypeerde agentregistratie, categorieën en groepering
+    navigation.ts    Native hashadressen, browsergeschiedenis en routevalidatie
     api.ts           HTTP-verzoeken en API-fouten
     types.ts         TypeScript API-types
     validation.ts    Bestandsvalidatie in de browser
@@ -449,6 +469,7 @@ frontend/
     useComparison.ts Vergelijkingspaar, bestanden, annuleren en rapportstatus
     invoiceExport.ts JSON-export van het serverresultaat, met lokale reviewmarkering
     components/      UploadPanel, ChatPanel, AgentPanel, ComparisonPanel, InvoicePanel, ToolActivity, Sources, Composer en Icon
+                     AppNavigation en AgentLibrary voor navigatie en agentontdekking
   .env.example
   package.json
 .env.example
@@ -705,6 +726,7 @@ npm run build
 | `backend/tests/test_invoice.py` | Extractie en bewijs, Decimal-berekeningen, PO-afwijkingen, toolkeuze, limieten, documentwissels en promptinjectie |
 | `backend/tests/test_invoice_gemini.py` | Echte SDK met gemockt HTTP-verkeer: toolselectie, gestructureerde extractie, bronnen en thought signatures |
 | `frontend/src/Invoice.test.tsx` | Upload, factuurresultaten, controles, reviewmarkering, fouten en late resultaten |
+| `frontend/src/Navigation.test.tsx` | Agentcategorieën, kaarten, directe adressen, terug/vooruit, actieve navigatie, menu-interactie en behoud van uploads en conceptinvoer |
 | `frontend/src/invoiceExport.test.ts` | JSON-export met exacte decimale strings, nulls en scheiding van lokale review en financiële goedkeuring |
 | `frontend/src/Comparison.test.tsx` | Twee uploads, omvang, bevindingen, bronlinks per PDF, moduswissels en late/verouderde rapporten |
 | `frontend/src/App.test.tsx` | Upload/chat- en agentinteracties, moduswissels, fouten, bronnen en late antwoorden |
@@ -712,6 +734,8 @@ npm run build
 | `frontend/src/validation.test.ts` | Bestandsvalidatie |
 
 Automatische tests vereisen geen echte API-sleutel, betaalde requests of download van modelgewichten. Ze controleren de applicatielogica met gemockte externe interacties. Een geslaagde testsuite bevestigt geen live providerbeschikbaarheid, feitelijke modelkwaliteit of volledige weerstand tegen promptinjectie. De frontendbuild voert TypeScript-controle uit en schrijft de productieoutput naar `frontend/dist/`.
+
+Er is geen afzonderlijke ESLint-configuratie of `npm run lint`-opdracht. TypeScript-controle loopt via de build; de bestaande Prettier-installatie kan geselecteerde bestanden controleren met `npx prettier --check <bestanden>`. Vitest gebruikt jsdom en controleert geen schermgeometrie; responsive opmaak en horizontale overflow moeten aanvullend in een browser worden gecontroleerd.
 
 Alleen de agenttests uitvoeren kan met `.\.venv\Scripts\python.exe -m pytest backend/tests/test_agent.py backend/tests/test_agent_gemini.py -q`. De gemockte modelresponsen testen verschillende toolkeuzes en hun uitvoering; ze bewijzen niet dat een live LLM bij iedere opdracht dezelfde keuze maakt. Voor die controle zijn de bovenstaande opdrachten in Refund Review bedoeld.
 

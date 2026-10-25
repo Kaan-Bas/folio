@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+import { openAgent } from './test/navigation'
 import * as api from './api'
 import type { ComparisonPair, ComparisonResponse } from './types'
 
@@ -115,7 +116,7 @@ beforeEach(() => {
 async function openComparison() {
   const user = userEvent.setup()
   render(<App />)
-  await user.click(screen.getByRole('button', { name: 'Document Comparison' }))
+  await openAgent(user, 'Document Comparison Agent')
   return user
 }
 
@@ -174,7 +175,7 @@ describe('Document Comparison', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('PDF-bestand')
     expect(screen.getByRole('button', { name: 'Documenten verwerken' })).toBeDisabled()
     expect(api.uploadComparison).not.toHaveBeenCalled()
-    await user.click(screen.getByRole('button', { name: 'Document Chat' }))
+    await user.click(screen.getByRole('link', { name: 'Document Chat' }))
     expect(screen.getByLabelText('Je vraag over de PDF')).toBeDisabled()
   })
 
@@ -230,7 +231,7 @@ describe('Document Comparison', () => {
     const user = await openComparison()
     await uploadBoth(user)
     await user.click(screen.getByRole('button', { name: 'Vergelijk documenten' }))
-    expect(screen.getByRole('button', { name: 'Document Chat' })).toBeDisabled()
+    expect(screen.getByRole('link', { name: 'Document Chat' })).toHaveAttribute('href', '#/chat')
     select('A', 'replacement.pdf')
     await act(async () => {
       resolveReport(report)
@@ -260,9 +261,9 @@ describe('Document Comparison', () => {
     await uploadBoth(user)
     await user.click(screen.getByRole('button', { name: 'Vergelijk documenten' }))
     await screen.findByText(report.summary)
-    await user.click(screen.getByRole('button', { name: 'Refund Review' }))
+    await openAgent(user, 'Refund Review Agent')
     expect(screen.getByRole('button', { name: 'Onderzoek starten' })).toBeDisabled()
-    await user.click(screen.getByRole('button', { name: 'Document Comparison' }))
+    await openAgent(user, 'Document Comparison Agent')
     expect(screen.getByText(report.summary)).toBeInTheDocument()
   })
 

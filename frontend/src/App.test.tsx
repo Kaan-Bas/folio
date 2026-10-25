@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+import { openAgent } from './test/navigation'
 import * as api from './api'
 import type { AgentResponse, Answer, UploadedDocument } from './types'
 
@@ -199,7 +200,7 @@ describe('PDF assistant', () => {
   it('offers a separate agent mode with validated order input, advice, sources and tool statuses', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole('button', { name: 'Refund Review' }))
+    await openAgent(user, 'Refund Review Agent')
     expect(screen.getByRole('button', { name: 'Onderzoek starten' })).toBeDisabled()
     vi.mocked(api.uploadDocument).mockResolvedValueOnce({
       ...document,
@@ -230,7 +231,7 @@ describe('PDF assistant', () => {
     const user = userEvent.setup()
     render(<App />)
     await uploadFile()
-    await user.click(screen.getByRole('button', { name: 'Refund Review' }))
+    await openAgent(user, 'Refund Review Agent')
     await user.clear(screen.getByLabelText('Opdracht'))
     await user.type(screen.getByLabelText('Opdracht'), 'Wat is de retourtermijn?')
     await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
@@ -257,7 +258,7 @@ describe('PDF assistant', () => {
     })
     render(<App />)
     await uploadFile()
-    await user.click(screen.getByRole('button', { name: 'Refund Review' }))
+    await openAgent(user, 'Refund Review Agent')
     await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
     expect(await screen.findByText('Toollimiet bereikt')).toBeInTheDocument()
     expect(screen.getByText('Geblokkeerd')).toBeInTheDocument()
@@ -274,9 +275,9 @@ describe('PDF assistant', () => {
     )
     render(<App />)
     await uploadFile()
-    await user.click(screen.getByRole('button', { name: 'Refund Review' }))
+    await openAgent(user, 'Refund Review Agent')
     await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
-    expect(screen.getByRole('button', { name: 'Document Chat' })).toBeDisabled()
+    expect(screen.getByRole('link', { name: 'Document Chat' })).toHaveAttribute('href', '#/chat')
     vi.mocked(api.uploadDocument).mockResolvedValueOnce({
       ...document,
       document_id: 'second-id',
@@ -297,8 +298,8 @@ describe('PDF assistant', () => {
     await uploadFile()
     await user.type(screen.getByLabelText('Je vraag over de PDF'), 'Welke kleur?{Enter}')
     await screen.findByText(answer.answer)
-    await user.click(screen.getByRole('button', { name: 'Refund Review' }))
-    await user.click(screen.getByRole('button', { name: 'Document Chat' }))
+    await openAgent(user, 'Refund Review Agent')
+    await user.click(screen.getByRole('link', { name: 'Document Chat' }))
     expect(screen.getByText(answer.answer)).toBeInTheDocument()
     expect(screen.getByText('Welke kleur?', { selector: 'p' })).toBeInTheDocument()
   })
@@ -307,7 +308,7 @@ describe('PDF assistant', () => {
     const user = userEvent.setup()
     render(<App />)
     await uploadFile()
-    await user.click(screen.getByRole('button', { name: 'Refund Review' }))
+    await openAgent(user, 'Refund Review Agent')
     await user.type(screen.getByLabelText(/Fictieve order-ID/), 'REAL-123')
     await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('fictieve order-ID')
@@ -321,7 +322,7 @@ describe('PDF assistant', () => {
     )
     render(<App />)
     await uploadFile()
-    await user.click(screen.getByRole('button', { name: 'Refund Review' }))
+    await openAgent(user, 'Refund Review Agent')
     await user.type(screen.getByLabelText(/Fictieve order-ID/), 'DEMO-1001')
     await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Kan de backend niet bereiken')
@@ -341,7 +342,7 @@ describe('PDF assistant', () => {
     })
     render(<App />)
     await uploadFile()
-    await user.click(screen.getByRole('button', { name: 'Refund Review' }))
+    await openAgent(user, 'Refund Review Agent')
     await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Upload eerst een PDF.')
     expect(screen.getByRole('button', { name: 'Onderzoek starten' })).toBeDisabled()
@@ -351,16 +352,16 @@ describe('PDF assistant', () => {
     const user = userEvent.setup()
     render(<App />)
     await uploadFile()
-    await user.click(screen.getByRole('button', { name: 'Refund Review' }))
+    await openAgent(user, 'Refund Review Agent')
     await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
     await screen.findByText(agentAdvice.answer)
-    await user.click(screen.getByRole('button', { name: 'Document Chat' }))
+    await user.click(screen.getByRole('link', { name: 'Document Chat' }))
     vi.mocked(api.askQuestion).mockRejectedValueOnce(
       new api.ApiError('Upload opnieuw.', 'no_document', 404),
     )
     await user.type(screen.getByLabelText('Je vraag over de PDF'), 'Wat staat er?{Enter}')
     await screen.findByRole('alert')
-    await user.click(screen.getByRole('button', { name: 'Refund Review' }))
+    await openAgent(user, 'Refund Review Agent')
     expect(screen.queryByText(agentAdvice.answer)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Onderzoek starten' })).toBeDisabled()
   })
