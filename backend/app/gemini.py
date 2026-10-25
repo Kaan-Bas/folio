@@ -130,29 +130,37 @@ class GeminiAnswerGenerator:
 class GeminiAgentModel:
     """Manual function calling: the SDK must never dispatch tools on our behalf."""
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        system_prompt: str | None = None,
+        tool_specs: dict | None = None,
+    ) -> None:
+        from app.agent import AGENT_SYSTEM_PROMPT
+        from app.agent_tools import TOOL_SPECS
+
         self.settings = settings
+        self.system_prompt = system_prompt if system_prompt is not None else AGENT_SYSTEM_PROMPT
+        self.tool_specs = tool_specs if tool_specs is not None else TOOL_SPECS
 
     def next_turn(
         self, history: Sequence[types.Content], *, remaining_calls: int, timeout_seconds: float
     ) -> types.Content:
-        from app.agent import AGENT_SYSTEM_PROMPT
-        from app.agent_tools import TOOL_SPECS
-
         declarations = [
             types.FunctionDeclaration(
                 name=name,
                 description=description,
                 parameters_json_schema=schema.model_json_schema(),
             )
-            for name, (schema, description) in TOOL_SPECS.items()
+            for name, (schema, description) in self.tool_specs.items()
         ]
         with gemini_client(self.settings, timeout_seconds=timeout_seconds) as client:
             response = client.models.generate_content(
                 model=self.settings.gemini_model,
                 contents=list(history),
                 config=types.GenerateContentConfig(
-                    system_instruction=AGENT_SYSTEM_PROMPT
+                    system_instruction=self.system_prompt
                     + f"\nResterend toolbudget: {remaining_calls}. Geef bij nul alleen het eindantwoord.",
                     tools=[types.Tool(function_declarations=declarations)],
                     automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),

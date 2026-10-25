@@ -1,6 +1,6 @@
-# Folio v2 - Agentic Document Assistant
+# Folio - Document Chat en Agents
 
-Folio is een webapplicatie met twee modi: **Document Chat** voor vragen over een PDF en **AI Agent** voor het onderzoeken van fictieve retourverzoeken. Beide modi gebruiken hetzelfde geüploade document en tonen de gebruikte bronfragmenten en PDF-pagina's.
+Folio is een webapplicatie met drie functies: **Document Chat** voor vragen over een PDF, **Refund Review** voor fictieve retourverzoeken en **Document Comparison** voor het vergelijken van twee PDF-versies. Alle functies tonen controleerbare document- en paginaverwijzingen. Chat en retouranalyse delen één document; vergelijkingen gebruiken een onafhankelijk documentpaar.
 
 De applicatie gebruikt Retrieval-Augmented Generation (RAG): relevante tekst wordt uit het document opgehaald en als context aan een taalmodel (LLM) doorgegeven. Embeddings en zoekopdrachten worden lokaal uitgevoerd. Document Chat stuurt alleen de vraag en de gevonden fragmenten naar de LLM-provider. De agent stuurt daarnaast zijn opdracht en de resultaten van uitgevoerde tools mee, zoals fictieve bestelgegevens en berekende kalenderdagen.
 
@@ -13,7 +13,7 @@ De applicatie gebruikt Retrieval-Augmented Generation (RAG): relevante tekst wor
 - Antwoorden bekijken met geciteerde tekstfragmenten en links naar de bronpagina's.
 - Een melding bij onvoldoende context, ontbrekende configuratie of verwerkingsfouten.
 - Een document vervangen, waarbij de vorige index en de chat worden gewist.
-- Wisselen tussen Document Chat en AI Agent met behoud van het actieve document.
+- Wisselen tussen Document Chat, Refund Review en Document Comparison met behoud van de toestand per functie.
 - De agent zelf tools laten kiezen voor beleid zoeken, fictieve orders lezen en kalenderdagen berekenen.
 - Conceptadvies bekijken met een overzicht van uitgevoerde tools en hun status, zonder financiële acties.
 
@@ -130,7 +130,7 @@ Met een geactiveerde Python-omgeving kan ook `python backend/scripts/create_exam
 
 Dit zijn voorbeelden voor handmatige controle. De gevonden fragmenten en de formulering van modelantwoorden kunnen variëren.
 
-### AI Agent lokaal gebruiken
+### Refund Review lokaal gebruiken
 
 Genereer eerst het fictieve retourbeleid:
 
@@ -141,7 +141,7 @@ Genereer eerst het fictieve retourbeleid:
 Met een geactiveerde Python-omgeving werkt ook `python backend/scripts/create_refund_policy.py`. Het script schrijft `examples/refund_policy.pdf`, een document van drie pagina's. De bestaande backend- en frontendstartcommando's blijven gelden; extra dependencies of API-sleutels zijn niet nodig.
 
 1. Upload `examples/refund_policy.pdf` via het bestaande uploadpaneel.
-2. Kies **AI Agent**.
+2. Kies **Refund Review**.
 3. Vul bijvoorbeeld `DEMO-1001` in en laat de voorgestelde onderzoeksopdracht staan.
 4. Start het onderzoek en bekijk het conceptadvies, de bronnen en de uitgevoerde tools.
 
@@ -159,6 +159,109 @@ De orders staan uitsluitend als fictieve fixtures in `backend/app/fixtures/demo_
 De fixture gebruikt vaste retouraanvraagdatums, niet de huidige systeemdatum. Op pagina 1 staan termijnregels, op pagina 2 productvoorwaarden en uitzonderingen, en op pagina 3 de beoordelingsbevoegdheden. Regels over bijvoorbeeld internationale retouren ontbreken bewust. Een vraag daarover hoort ontbrekende informatie te melden. Deze voorbeelden beschrijven controlepunten, geen gegarandeerde modeluitvoer of geteste live providerreacties.
 
 Alle resultaten zijn **conceptadviezen**, geen definitieve terugbetalingsbesluiten. De agent kan geen orders wijzigen, retouren goedkeuren of terugbetalingen uitvoeren.
+
+## Document Comparison gebruiken
+
+Document Chat voert een vaste zoek-en-antwoordketen uit op één document. Refund Review kiest tools voor een fictief retouronderzoek. Document Comparison kiest zelfstandig tools om de twee geselecteerde documenten te onderzoeken. De agents worden afzonderlijk gestart en werken niet als een multi-agent-systeem.
+
+### Voorbeelden en lokaal starten
+
+De installatie en startcommando's hierboven blijven gelden. Er zijn geen nieuwe packages of sleutels nodig. Genereer vanuit de hoofdmap fictieve versies:
+
+```powershell
+.\.venv\Scripts\python.exe backend/scripts/create_comparison_examples.py
+```
+
+Met geactiveerde omgeving werkt ook `python backend/scripts/create_comparison_examples.py`. De PDF's worden lokaal gegenereerd en zijn door Git genegeerd.
+
+1. Kies **Document Comparison** in de webapplicatie.
+2. Selecteer `examples/refund_policy_2025.pdf` als **Document A** (oud/baseline) en `examples/refund_policy_2026.pdf` als **Document B** (nieuw).
+3. Klik op **Documenten verwerken**. De twee indexen worden pas als paar beschikbaar wanneer beide bestanden succesvol zijn verwerkt.
+4. Vul een vergelijkingsopdracht in, kies de omvang en klik op **Vergelijk documenten**.
+5. Controleer het rapport, de passages per document en het overzicht van werkelijk uitgevoerde tools. Bronlinks openen de bijbehorende oorspronkelijke PDF.
+
+Voorbeeldopdrachten:
+
+- 'Vergelijk de retourtermijn en de retourverzendkosten. Wat betekenen de wijzigingen voor klanten?'
+- 'Welke voorwaarden zijn in beide versies hetzelfde?'
+- 'Welke voorwaarden lijken strenger geworden? Vermeld onzekere conclusies.'
+- 'Onderzoek de belangrijkste verschillen tussen beide documenten zo breed mogelijk.'
+
+In de voorbeelden verandert de retourtermijn van 14 naar 30 dagen. De retourverzendkosten verschuiven van de klant naar de winkel. De eis van een ongebruikt product in originele verpakking blijft gelijk. Een software-uitzondering staat alleen in de nieuwe versie en een contactinstructie alleen in de oude. Die laatste waarnemingen bewijzen op zichzelf geen toevoeging of verwijdering; ontbrekend bewijs moet zichtbaar blijven. Dit zijn controlepunten voor handmatig testen, geen gegarandeerde live modelresultaten.
+
+**Gerichte vergelijking** onderzoekt de opgegeven onderwerpen. **Zo breed mogelijk** vraagt de agent om de documentstructuur en meer onderwerpen te onderzoeken, binnen een eindig tool- en contextbudget. Geen van beide opties garandeert volledige inhoudelijke dekking.
+
+### Tools en architectuur
+
+| Tool | Argumenten | Uitvoer |
+| --- | --- | --- |
+| `list_document_sections` | `document_id` | Paginagebaseerd overzicht met passage-ID's, metadata en korte previews; geen geraden sectietitels. Maximaal 80 passagevermeldingen, met expliciete afkapmelding |
+| `search_document` | `document_id`, `query`, `top_k` (1–8, standaard 4) | Volledige relevante passages uit uitsluitend die index, met document-ID, bestandsnaam, pagina en documentgebonden `reference_id` |
+| `get_document_passage` | `document_id`, `passage_id` | Eén bestaande passage uit dat document; accepteert een lokale passage-ID of volledige documentreferentie |
+
+`RAGService.build_document` hergebruikt PDF-extractie, chunking en dezelfde lokale embeddinginstantie. `RAGService.search_in` doorzoekt één expliciet meegegeven FAISS-index. Een apart `ComparisonStore` bewaart één actief paar zonder de bestaande chat-/retourindex te vervangen. Iedere PDF krijgt een unieke UUID, ook wanneer beide bestanden dezelfde naam of inhoud hebben.
+
+Beide agents gebruiken `run_tool_loop` in `agent_loop.py` en dezelfde `GeminiAgentModel`-implementatie, met eigen systeeminstructies en tooldefinities. Gemini kiest tools met `AUTO`; SDK-autodispatch staat uit. Iedere poging telt afzonderlijk, inclusief batches, ongeldige argumenten en geblokkeerde tools. Na het budget wordt `NONE` ingesteld en wordt een alsnog gevraagde extra tool niet uitgevoerd.
+
+```mermaid
+flowchart TD
+    A[Twee PDFs] --> B[Gedeelde PDF- en embeddingcode]
+    B --> C[Vergelijkingspaar met afzonderlijke index A en B]
+    D[Opdracht en omvang] --> E[LLM kiest tool of eindrapport]
+    C --> F[Documentgebonden tools met allowlist]
+    E --> F
+    F --> G[Toolresultaat als onbetrouwbare data]
+    G --> E
+    E --> H[JSON-rapport en broncontrole]
+    H --> I[Bevindingen, bronnen, dekking en uitgevoerde tools]
+```
+
+De standaardlimiet is 12 toolpogingen: maximaal 13 modelbeurten inclusief een slotbeurt. De totale deadline is 120 seconden, met per modelaanroep ook de bestaande providertimeout. Het cumulatieve budget voor toolresultaten is 60.000 tekens, geen exact tokenbudget. Een resultaat boven het resterende budget wordt geblokkeerd en telt niet als opgehaalde bewijsbron. Modeloutput is per beurt begrensd op 4.096 tokens. Grotere limieten kunnen meer quota, tijd en kosten verbruiken.
+
+Bij iedere modelbeurt wordt de opgebouwde geschiedenis opnieuw meegestuurd. Het totale API-tokenverbruik kan daardoor hoger zijn dan de omvang van het opgeslagen toolcontextbudget; dit budget is geen financieel kostenplafond.
+
+### Bewijs, onzekerheid en dekking
+
+Een opgehaalde passage krijgt een referentie zoals `<document-UUID>:p2-c0`. Bronverwijzingen worden alleen geaccepteerd als de volledige passage werkelijk in deze aanvraag aan het model is doorgegeven en aan de juiste documentkant wordt geciteerd. Previews uit een structuuroverzicht tellen niet mee als bewijs of volledige passagedekking. Direct opgehaalde passages hebben `score=0.0` als technische placeholder; dit is geen similariteits- of betrouwbaarheidsoordeel.
+
+Een bevinding bevat `topic`, `change_type`, `old_situation`, `new_situation`, `explanation`, `sources_a`, `sources_b`, `insufficient_evidence` en `evidence_note`. Mogelijke typen zijn `modified`, `added`, `removed`, `unchanged` en `uncertain`. `proposed_change_type` bewaart de classificatie die het model voorstelde.
+
+Zonder bron aan beide kanten, bij expliciete onzekerheid of bij onopgeloste toolfouten wordt een bevinding afgezwakt naar `uncertain`. Een niet gevonden regel wordt dus niet automatisch als toegevoegd of verwijderd bevestigd. Een niet-onderbouwde situatie wordt vervangen door een melding dat afwezigheid niet is vastgesteld. Onbekende, verzonnen of verwisselde bron-ID's leiden tot een fout, niet tot een rapport met zulke bronnen.
+
+Het rapport vermeldt per document hoeveel unieke volledige passages zijn opgehaald en op welke pagina's. `all_passages_retrieved` betekent uitsluitend dat alle tekstfragmenten zijn opgevraagd. Het bewijst geen volledige inhoudelijke vergelijking. De status `completed` betekent dat de aanvraag is afgerond, niet dat ieder mogelijk verschil is gevonden. De backend controleert documentidentiteit en bronnen; de inhoudelijke interpretatie blijft modeluitvoer die aan de passages moet worden getoetst.
+
+Het activiteitsoverzicht bevat uitsluitend uitgevoerde toolpogingen met status en Document A/B, waar bekend. Er worden geen fictieve tussenstappen afgespeeld. Tussenresultaten worden nog niet gestreamd.
+
+### Vergelijkings-API
+
+Na upload volgt een request naar `/api/comparisons`. De drie UUID's moeten uit de actuele uploadresponse komen:
+
+```json
+{
+  "comparison_id": "e78160e1-35b9-4776-a2db-a52ce7cf2319",
+  "document_a_id": "72f4ad1a-a940-4720-a021-2d32fdff5978",
+  "document_b_id": "c323c580-499a-4f58-b6c9-4bfe85dd7672",
+  "instruction": "Vergelijk de retourtermijnen en verzendkosten.",
+  "scope": "focused"
+}
+```
+
+Ongeldige requests krijgen `422`; ongeldige uploads gebruiken dezelfde HTTP-foutcodes als gewone PDF-uploads. Een geldig vergelijkingsrequest krijgt een gestructureerde response met status `completed`, `partial`, `insufficient_information`, `limit_reached` of `error`. Operationele fouten, waaronder ontbrekende/vervangen documenten, API-quota en timeouts, staan in `error.code` en `error.message`; HTTP blijft dan `200` om uitgevoerde tools te kunnen tonen. `tool_call_limit` vermeldt het toegepaste budget. Foutresponses tonen geen ongevalideerde bevindingen.
+
+Een wijziging aan Document A of B wist het oude rapport en de lokale paar-ID direct. Een nieuwe upload maakt ook het oude backendpaar ongeldig. Een laat modelantwoord of een oudere upload kan daardoor niet ongemerkt bij het nieuwe paar worden gebruikt. De bestaande Document Chat- en Refund Review-endpoints behouden hun contracten.
+
+### Tests en beperkingen
+
+Alleen de vergelijkingstests uitvoeren:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_comparison.py backend/tests/test_comparison_gemini.py -q
+```
+
+De volledige backendtests, frontendtests en build worden uitgevoerd met de commando's in 'Tests en build'. Externe modelaanroepen zijn gemockt. Dit controleert de uitvoeringslogica, niet de live modelkeuze, volledige inhoudelijke juistheid of weerstand tegen alle promptinjecties.
+
+Er is geen OCR, vaste evaluatieset voor vergelijkingskwaliteit of betrouwbare algemene sectieherkenning. Overzichten zijn paginagebaseerd en begrensd. Grote documenten worden door tool- en contextbudgetten meestal gedeeltelijk onderzocht. Een deadline kan lopende lokale inferentie niet hard onderbreken. De opslag blijft gedeeld per proces en verdwijnt bij een herstart. Verdere uitbreidingen zijn een vaste evaluatieset voor wijzigingen en afwezigheid, paginering van overzichten, betere sectieherkenning en tokenbewuste contextselectie.
+
 
 ## Architectuur
 
@@ -187,7 +290,12 @@ backend/
     retrieval.py     Vectorvalidatie, normalisatie en FAISS
     llm.py           AnswerGenerator-interface, systeemprompt en antwoordmodel
     gemini.py        Huidige LLM-adapter, SDK-aanroepen en foutvertaling
-    agent.py         Begrensde tool-calling-loop en agentinstructies
+    agent.py         Refund Review-service en instructies
+    agent_loop.py    Gedeelde begrensde tool-loop voor beide agents
+    comparison.py    Vergelijkingsservice en resultaat-/bewijscontrole
+    comparison_store.py   Afzonderlijk, atomair vergelijkingspaar
+    comparison_tools.py   Documentoverzicht, zoeken en passageopvraag
+    comparison_schemas.py Vergelijkingsrequests, bevindingen, bronnen en dekking
     agent_schemas.py Agentrequests, responses en gevalideerde toolargumenten
     agent_tools.py   Drie tools en expliciete allowlist voor dispatch
     fixtures/demo_orders.json  Uitsluitend fictieve bestellingen
@@ -196,6 +304,7 @@ backend/
   scripts/
     create_example.py
     create_refund_policy.py
+    create_comparison_examples.py
     download_embeddings.py
   tests/
   pyproject.toml
@@ -206,7 +315,8 @@ frontend/
     types.ts         TypeScript API-types
     validation.ts    Bestandsvalidatie in de browser
     useAssistant.ts  Document-, chat-, agent- en verzoekstatus
-    components/      UploadPanel, ChatPanel, AgentPanel, Composer, Sources en Icon
+    useComparison.ts Vergelijkingspaar, bestanden, annuleren en rapportstatus
+    components/      UploadPanel, ChatPanel, AgentPanel, ComparisonPanel, ToolActivity, Sources, Composer en Icon
   .env.example
   package.json
 .env.example
@@ -263,7 +373,7 @@ Standaard worden maximaal vier fragmenten met een score van ten minste `0.2` ges
 
 ### 4. LLM en antwoordvalidatie
 
-In Document Chat gaan alleen de huidige vraag en opgehaalde fragmenten vanuit de backend naar de LLM. Het volledige document en eerdere chatberichten worden niet meegestuurd. Zonder zoekresultaten retourneert de backend direct een vast antwoord over onvoldoende informatie, zonder LLM-aanroep. In AI Agent bepaalt de LLM eerst welke tools nodig zijn; `search_policy` gebruikt vervolgens exact dezelfde `RAGService.search`-functie en FAISS-index.
+In Document Chat gaan alleen de huidige vraag en opgehaalde fragmenten vanuit de backend naar de LLM. Het volledige document en eerdere chatberichten worden niet meegestuurd. Zonder zoekresultaten retourneert de backend direct een vast antwoord over onvoldoende informatie, zonder LLM-aanroep. In Refund Review bepaalt de LLM eerst welke tools nodig zijn; `search_policy` gebruikt vervolgens exact dezelfde `RAGService.search`-functie en FAISS-index.
 
 De huidige adapter gebruikt de officiële `google-genai`-SDK, een afzonderlijke systeeminstructie en gestructureerde JSON-output met `answer`, `cited_chunk_ids` en `sufficient_context`. Pydantic valideert de antwoordstructuur.
 
@@ -277,9 +387,9 @@ Een geldige bron-ID bewijst dat het fragment is opgehaald, maar niet dat iedere 
 
 Alleen `GEMINI_MODEL` wijzigen schakelt niet naar een andere provider: de huidige adapter en configuratienamen zijn specifiek voor de huidige SDK. De interface en foutmeldingen van de app gebruiken providerneutrale termen.
 
-De agent gebruikt een afzonderlijke `GeminiAgentModel` in dezelfde providermodule. Een andere provider voor de agent vereist ook een vervangende `AgentModel.next_turn`-adapter. De huidige agentinterface gebruikt de conversatietypen uit de Google SDK, inclusief behoud van tool-call-ID's en thought signatures.
+Beide agents gebruiken `GeminiAgentModel`, met eigen prompts en tools, in dezelfde providermodule. Een andere provider voor de agent vereist ook een vervangende `AgentModel.next_turn`-adapter. De huidige agentinterface gebruikt de conversatietypen uit de Google SDK, inclusief behoud van tool-call-ID's en thought signatures.
 
-## Tools en agent-loop
+## Refund Review: tools en agent-loop
 
 | Tool | Argumenten | Resultaat |
 | --- | --- | --- |
@@ -304,7 +414,7 @@ flowchart TD
 
 De bestaande `google-genai` 2.x-SDK voert `models.generate_content` uit met expliciete function declarations en `AUTO`-toolkeuze. SDK-autodispatch staat uit: alleen de eigen service voert tools uit. Volledige modelberichten worden teruggestuurd, inclusief oorspronkelijke thought signatures en gekoppelde function-call-ID's. De aanpak volgt de officiële documentatie voor [handmatige function calling](https://ai.google.dev/gemini-api/docs/generate-content/function-calling) en de [Python-SDK](https://googleapis.github.io/python-genai/).
 
-Per aanvraag gelden maximaal **vijf toolpogingen**, inclusief ongeldige argumenten en geblokkeerde tools. Ook meerdere calls binnen één modelbericht tellen afzonderlijk. Na vijf pogingen wordt de modelconfiguratie op `NONE` gezet voor toolgebruik; een alsnog aangevraagde zesde call wordt niet uitgevoerd. Er zijn daardoor maximaal zes modelbeurten, inclusief de eventuele slotbeurt. Een modelbeurt kan wel meerdere tools aanvragen.
+Per Refund Review-aanvraag gelden maximaal **vijf toolpogingen**, inclusief ongeldige argumenten en geblokkeerde tools. Ook meerdere calls binnen één modelbericht tellen afzonderlijk. Na vijf pogingen wordt de modelconfiguratie op `NONE` gezet voor toolgebruik; een alsnog aangevraagde zesde call wordt niet uitgevoerd. Er zijn daardoor maximaal zes modelbeurten, inclusief de eventuele slotbeurt. Een modelbeurt kan wel meerdere tools aanvragen.
 
 Iedere modelaanroep gebruikt de kleinste waarde van de resterende agenttijd en `GEMINI_TIMEOUT_SECONDS`. De totale deadline wordt vóór en na model- en toolstappen gecontroleerd. Een lopende lokale embeddingbewerking wordt niet geforceerd afgebroken; een verlopen deadline wordt na terugkeer verwerkt.
 
@@ -320,6 +430,9 @@ De backend logt op INFO-niveau alleen de bekende toolnaam en de status via `uvic
 | `GEMINI_MODEL` | `gemini-3.5-flash-lite` | Modelnaam voor de huidige LLM-adapter |
 | `GEMINI_TIMEOUT_SECONDS` | `45` | Timeout per LLM-aanroep; maximaal 180 seconden |
 | `AGENT_TIMEOUT_SECONDS` | `90` | Totale agentdeadline, gecontroleerd tussen stappen; maximaal 300 seconden |
+| `COMPARISON_MAX_TOOL_CALLS` | `12` | Toolpogingen per vergelijking; toegestaan van 2 tot 24 |
+| `COMPARISON_TIMEOUT_SECONDS` | `120` | Totale vergelijkingsdeadline; maximaal 300 seconden |
+| `COMPARISON_MAX_CONTEXT_CHARS` | `60000` | Cumulatief budget voor toolresultaten; toegestaan van 4.000 tot 120.000 tekens |
 | `EMBEDDING_MODEL` | `intfloat/multilingual-e5-small` | Lokaal sentence-transformers-model |
 | `EMBEDDING_CACHE_DIR` | `.model_cache` in de hoofdmap | Locatie van modelbestanden; relatieve paden worden vanaf de hoofdmap opgelost |
 | `EMBEDDING_LOCAL_FILES_ONLY` | `false` | Alleen reeds gedownloade modelbestanden gebruiken |
@@ -349,6 +462,8 @@ FastAPI beschrijft de API in OpenAPI. Pydantic valideert backendrequests en resp
 | `GET` | `/api/health` | Geen | `200`: `status`, `configured`, `max_upload_mb`, `max_question_chars` |
 | `POST` | `/api/documents` | `multipart/form-data` met veld `file` | `201`: `document_id`, `filename`, `page_count`, `text_page_count`, `chunk_count` |
 | `POST` | `/api/questions` | JSON met `document_id` en `question` | `200`: `answer`, `sources`, `insufficient_context` |
+| `POST` | `/api/comparisons/documents` | Multipart met `document_a` en `document_b` | `201`: `comparison_id` en uploadmetadata voor `document_a` en `document_b` |
+| `POST` | `/api/comparisons` | Vergelijkings-ID, beide document-ID's, opdracht en omvang | `200`: rapport, bevindingen, dekking, tools en status |
 | `POST` | `/api/agent` | JSON met `document_id`, `instruction` en optioneel `order_id` | `200`: `answer`, `sources`, `tool_calls`, `status`, `error`, `disclaimer`, `concept_advice` |
 
 Voorbeeld van een vraag, met de document-ID uit de uploadresponse:
@@ -406,9 +521,9 @@ De frontend en backend draaien lokaal op verschillende origins. CORS staat brows
 
 ## Documentlevenscyclus en gegevensverwerking
 
-Er is één actief document per backendproces, gedeeld door alle browservensters en beide modi. Zodra een upload de backend bereikt, wordt de oude index ongeldig, ook wanneer die upload daarna mislukt. Een unieke documentrevisie en locks voorkomen dat een oudere upload alsnog een nieuwer document overschrijft. Vragen bevatten een document-ID; na de LLM-aanroep controleert de backend opnieuw of het document nog actief is. De agent controleert dit vóór en na model- en toolstappen, zodat een onderzoek niet ongemerkt naar een nieuw document overschakelt.
+Er is één actief document voor Document Chat en Refund Review, plus één onafhankelijk vergelijkingspaar per backendproces. Alle browservensters delen deze opslag; er zijn geen gebruikerssessies. Een gewone upload vervangt alleen het chat-/retourdocument. Een vergelijkingsupload maakt alleen het oude paar ongeldig en installeert een nieuw paar wanneer beide bestanden succesvol zijn verwerkt. Ook een mislukte vervanging maakt het vorige document of paar ongeldig. UUID-revisies en locks blokkeren late uploads. Beide agents controleren vóór en na model- en toolstappen of hun documentrevisie nog geldig is.
 
-De frontend wist bij een geldige nieuwe bestandskeuze de chat en negeert late antwoorden van het vorige document. Annuleren van een browserverzoek stopt een al gestarte LLM-aanroep niet gegarandeerd. PDF-verwerking en synchrone modelaanroepen draaien buiten de ASGI-eventloop in de threadpool.
+De frontend wist bij een geldige nieuwe bestandskeuze de chat en negeert late antwoorden van het vorige document. Een wijziging aan Document A of B wist het vergelijkingspaar en rapport direct, annuleert het browserverzoek en negeert late resultaten. Annuleren van een browserverzoek stopt een al gestarte LLM-aanroep niet gegarandeerd. PDF-verwerking en synchrone modelaanroepen draaien buiten de ASGI-eventloop in de threadpool.
 
 PDF-tekst, vragen en toolresultaten worden als onbetrouwbare data meegestuurd, gescheiden van de systeeminstructies. Het model wordt geïnstrueerd om instructies in documenten of toolresultaten niet uit te voeren en alleen gecontroleerde feiten te gebruiken. De allowlist en het ontbreken van schrijftools beperken de uitvoerbare handelingen ook als het model een verkeerde tool aanvraagt. Dit biedt geen volledige garantie tegen inhoudelijk onjuiste of ongewenste modelantwoorden.
 
@@ -448,24 +563,27 @@ npm run build
 | `backend/tests/test_integration.py` | Volledige API-pipeline met echte SDK en FAISS, gemockt HTTP-verkeer en gemockte modelinferentie |
 | `backend/tests/test_agent.py` | Modelgestuurde toolselectie, alleen zoeken, meerdere tools, orders, datums, budgetten, deadlines, promptinjectie en documentwissels |
 | `backend/tests/test_agent_gemini.py` | Echte SDK met gemockt HTTP-verkeer: function declarations, call-ID's, thought signatures, bronpagina's en uitgeschakelde autodispatch |
+| `backend/tests/test_comparison.py` | Vergelijkingsinhoud, onzekerheid, documentisolatie, bron-ID's, uploads, budgetten, deadlines en promptinjectie |
+| `backend/tests/test_comparison_gemini.py` | Echte SDK met gemockt HTTP-verkeer voor vergelijkingstools en documentgebonden referenties |
+| `frontend/src/Comparison.test.tsx` | Twee uploads, omvang, bevindingen, bronlinks per PDF, moduswissels en late/verouderde rapporten |
 | `frontend/src/App.test.tsx` | Upload/chat- en agentinteracties, moduswissels, fouten, bronnen en late antwoorden |
 | `frontend/src/api.test.ts` | Verzoekformaten en API-foutafhandeling |
 | `frontend/src/validation.test.ts` | Bestandsvalidatie |
 
 Automatische tests vereisen geen echte API-sleutel, betaalde requests of download van modelgewichten. Ze controleren de applicatielogica met gemockte externe interacties. Een geslaagde testsuite bevestigt geen live providerbeschikbaarheid, feitelijke modelkwaliteit of volledige weerstand tegen promptinjectie. De frontendbuild voert TypeScript-controle uit en schrijft de productieoutput naar `frontend/dist/`.
 
-Alleen de agenttests uitvoeren kan met `.\.venv\Scripts\python.exe -m pytest backend/tests/test_agent.py backend/tests/test_agent_gemini.py -q`. De gemockte modelresponsen testen verschillende toolkeuzes en hun uitvoering; ze bewijzen niet dat een live LLM bij iedere opdracht dezelfde keuze maakt. Voor die controle zijn de bovenstaande opdrachten in AI Agent bedoeld.
+Alleen de agenttests uitvoeren kan met `.\.venv\Scripts\python.exe -m pytest backend/tests/test_agent.py backend/tests/test_agent_gemini.py -q`. De gemockte modelresponsen testen verschillende toolkeuzes en hun uitvoering; ze bewijzen niet dat een live LLM bij iedere opdracht dezelfde keuze maakt. Voor die controle zijn de bovenstaande opdrachten in Refund Review bedoeld.
 
 ## Beperkingen
 
-- Eén document per backendproces; geen afzonderlijke gebruikerssessies, authenticatie of permanente document- en chatopslag.
+- Eén gewoon document en één vergelijkingspaar per backendproces; geen afzonderlijke gebruikerssessies, authenticatie of permanente document- en chatopslag.
 - Geen ingebouwde OCR. Scans zonder tekstlaag worden niet inhoudelijk verwerkt. Tabellen, kolommen en complexe opmaak kunnen bij extractie structuur verliezen.
 - Chunking gebruikt tekens en houdt geen rekening met zins- of tokengrenzen. Lange invoer kan door het embeddingmodel worden afgekapt; overlap loopt niet door over paginagrenzen.
 - Retrieval kan relevante informatie missen of zwakke matches doorlaten. `TOP_K` en `MIN_SIMILARITY` zijn geen garantie op een juist antwoord.
 - Bron-ID's en metadata worden gecontroleerd, maar de inhoudelijke juistheid van het antwoord wordt niet automatisch bewezen. Er is nog geen vaste evaluatieset voor retrieval- en antwoordkwaliteit.
 - Eerdere chatberichten worden niet als context gebruikt. Vervolgvragen met verwijzingen zoals 'en wanneer gebeurde dat?' kunnen daardoor onvoldoende context hebben.
 - Geen streaming, automatische retries of fallbackprovider. Document Chat heeft een timeout per LLM-aanroep; de agent heeft daarnaast een deadline tussen stappen. Lopende lokale modelbewerkingen worden niet hard afgebroken.
-- De agent doet maximaal vijf toolpogingen. Complexe onderzoeken kunnen daardoor voortijdig stoppen; iedere modelbeurt verbruikt providerquota en kan bij een betaald project kosten veroorzaken.
+- Refund Review doet maximaal vijf toolpogingen. Document Comparison gebruikt een eigen configureerbaar budget. Complexe onderzoeken kunnen voortijdig stoppen; iedere modelbeurt verbruikt providerquota en kan bij een betaald project kosten veroorzaken.
 - De agent controleert geen echte retourrechten, klantgegevens of bedrijfsprocessen. Een PDF-bestandsnaam bewijst niet dat het document geschikt of volledig retourbeleid bevat. Alle adviezen blijven concepten voor inhoudelijke controle.
 - De applicatie is ingericht voor lokaal gebruik met één backendproces; productiehosting en gebruik door meerdere gebruikers vereisen aanvullende inrichting.
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { AgentResponse, AssistantActivity, UploadedDocument } from '../types'
 import { Icon } from './Icon'
 import { Sources } from './Sources'
+import { ToolActivity } from './ToolActivity'
 
 interface Props {
   document: UploadedDocument | null
@@ -12,18 +13,6 @@ interface Props {
   onRun: (orderId: string | null, instruction: string) => Promise<boolean>
 }
 
-const toolLabels: Record<string, string> = {
-  search_policy: 'Retourbeleid doorzoeken',
-  get_order_details: 'Fictieve bestelling opzoeken',
-  calculate_days_between: 'Kalenderdagen berekenen',
-  unknown_tool: 'Onbekende tool',
-}
-const toolStatuses = {
-  success: 'Geslaagd',
-  not_found: 'Niet gevonden',
-  error: 'Fout',
-  blocked: 'Geblokkeerd',
-}
 const resultStatuses = {
   completed: 'Onderzoek afgerond',
   insufficient_information: 'Informatie ontbreekt',
@@ -154,28 +143,7 @@ export function AgentPanel({ document, busy, result, error, pdfUrl, onRun }: Pro
               </p>
               <Sources sources={result.sources} pdfUrl={pdfUrl} />
             </section>
-            <section className="agent-tools" aria-label="Uitgevoerde tools">
-              <h3>
-                Uitgevoerde tools <span>{result.tool_calls.length} / 5</span>
-              </h3>
-              {result.tool_calls.length ? (
-                <ol>
-                  {result.tool_calls.map((call) => (
-                    <li key={call.sequence}>
-                      <div>
-                        <strong>{toolLabels[call.name] ?? 'Tool'}</strong>
-                        <span className={`tool-status ${call.status}`}>
-                          {toolStatuses[call.status]}
-                        </span>
-                      </div>
-                      <p>{call.message}</p>
-                    </li>
-                  ))}
-                </ol>
-              ) : (
-                <p className="agent-field-hint">Er zijn geen tools uitgevoerd.</p>
-              )}
-            </section>
+            <ToolActivity calls={result.tool_calls} />
           </>
         )}
       </div>

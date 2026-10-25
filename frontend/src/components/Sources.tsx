@@ -1,12 +1,20 @@
 import type { Source } from '../types'
 import { Icon } from './Icon'
 
-export function Sources({ sources, pdfUrl }: { sources: Source[]; pdfUrl: string | null }) {
+export function Sources({
+  sources,
+  pdfUrl,
+  documentName,
+}: {
+  sources: Source[]
+  pdfUrl: string | null
+  documentName?: string
+}) {
   if (!sources.length) return null
   return (
     <div className="sources">
       <div className="sources-label">
-        <Icon name="file" size={14} /> GEBRUIKTE BRONNEN
+        <Icon name="file" size={14} /> {documentName ?? 'GEBRUIKTE BRONNEN'}
       </div>
       {sources.map((source) => (
         <details key={source.chunk_id} className="source">

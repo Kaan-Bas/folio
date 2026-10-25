@@ -2,15 +2,14 @@
 
 import json
 import logging
-from collections.abc import Sequence
 from time import monotonic
-from typing import Protocol
 
 from google.genai import types
 from pydantic import ValidationError
 
 from app.agent_schemas import AgentRequest, AgentResponse, ToolExecution
-from app.agent_tools import TOOL_SPECS, AgentTools
+from app.agent_tools import TOOL_SPECS, AgentTools, ToolResult
+from app.agent_loop import AgentModel, run_tool_loop
 from app.errors import AppError
 from app.llm import GeneratedAnswer
 from app.retrieval import SearchHit
@@ -45,12 +44,6 @@ Antwoord in de taal van de opdracht.
 """
 
 
-class AgentModel(Protocol):
-    def next_turn(
-        self, history: Sequence[types.Content], *, remaining_calls: int, timeout_seconds: float
-    ) -> types.Content: ...
-
-
 class AgentService:
     def __init__(self, rag: RAGService, model: AgentModel) -> None:
         self.rag = rag
@@ -64,7 +57,7 @@ class AgentService:
         except AppError as exc:
             return AgentResponse(
                 answer="Het onderzoek kon niet worden afgerond. " + exc.message,
-                status="error",
+                status="limit_reached" if exc.code == "tool_limit" else "error",
                 tool_calls=trace,
                 error=ErrorDetail(code=exc.code, message=exc.message),
             )
@@ -81,7 +74,6 @@ class AgentService:
             )
 
     def _run(self, request: AgentRequest, trace: list[ToolExecution]) -> AgentResponse:
-        deadline = monotonic() + self.rag.settings.agent_timeout_seconds
         history = [
             types.Content(
                 role="user",
@@ -101,84 +93,32 @@ class AgentService:
         retrieved: dict[str, SearchHit] = {}
         unresolved: dict[str, str] = {}
 
-        def check_active() -> float:
-            remaining = deadline - monotonic()
-            if remaining <= 0:
-                raise AppError(504, "agent_timeout", "De maximale onderzoekstijd is bereikt.")
-            self.rag.store.get(request.document_id)
-            return remaining
-
-        # Each nonterminal turn consumes at least one tool attempt, so this is at most six turns.
-        while True:
-            remaining = check_active()
-            content = self.model.next_turn(
-                history,
-                remaining_calls=MAX_TOOL_CALLS - len(trace),
-                timeout_seconds=min(remaining, self.rag.settings.gemini_timeout_seconds),
+        def record(name: str, args: dict, result: ToolResult) -> None:
+            trace.append(
+                ToolExecution(
+                    sequence=len(trace) + 1, name=name, status=result.status, message=result.message
+                )
             )
-            check_active()
-            calls = [part.function_call for part in content.parts or [] if part.function_call]
-            if not calls:
-                return self._finish(content, list(retrieved.values()), unresolved, trace)
+            if result.status == "success":
+                unresolved.pop(name, None)
+            else:
+                unresolved[name] = result.message
+            for hit in result.hits:
+                retrieved[hit.chunk.id] = hit
 
-            # Preserve the complete original model content, including opaque thought signatures.
-            history.append(content)
-            results = []
-            for call in calls:
-                check_active()
-                if len(trace) >= MAX_TOOL_CALLS:
-                    return AgentResponse(
-                        answer="De limiet van vijf toolaanroepen is bereikt. Er is geen afgerond advies.",
-                        status="limit_reached",
-                        tool_calls=trace,
-                        error=ErrorDetail(
-                            code="tool_limit", message="Maximaal vijf toolaanroepen toegestaan."
-                        ),
-                    )
-                name = call.name if call.name in TOOL_SPECS else "unknown_tool"
-                try:
-                    result = self.tools.dispatch(call.name or "", call.args or {}, request)
-                except Exception as exc:
-                    trace.append(
-                        ToolExecution(
-                            sequence=len(trace) + 1,
-                            name=name,
-                            status="error",
-                            message="De tool kon niet worden uitgevoerd.",
-                        )
-                    )
-                    logger.info("agent_tool name=%s status=error", name)
-                    if isinstance(exc, AppError):
-                        raise
-                    raise AppError(
-                        502, "tool_error", "De tool kon niet worden uitgevoerd."
-                    ) from exc
-                trace.append(
-                    ToolExecution(
-                        sequence=len(trace) + 1,
-                        name=name,
-                        status=result.status,
-                        message=result.message,
-                    )
-                )
-                logger.info("agent_tool name=%s status=%s", name, result.status)
-                check_active()
-                if result.status == "success":
-                    unresolved.pop(name, None)
-                else:
-                    unresolved[name] = result.message
-                for hit in result.hits:
-                    retrieved[hit.chunk.id] = hit
-                results.append(
-                    types.Part(
-                        function_response=types.FunctionResponse(
-                            id=call.id,
-                            name=call.name or "unknown_tool",
-                            response={"untrusted_tool_result": result.payload()},
-                        )
-                    )
-                )
-            history.append(types.Content(role="user", parts=results))
+        content = run_tool_loop(
+            self.model,
+            history,
+            max_calls=MAX_TOOL_CALLS,
+            timeout_seconds=self.rag.settings.agent_timeout_seconds,
+            provider_timeout=self.rag.settings.gemini_timeout_seconds,
+            check_active=lambda: self.rag.store.get(request.document_id),
+            dispatch=lambda name, args: self.tools.dispatch(name, args, request),
+            record=record,
+            allowed_names=set(TOOL_SPECS),
+            clock=monotonic,
+        )
+        return self._finish(content, list(retrieved.values()), unresolved, trace)
 
     @staticmethod
     def _finish(

@@ -10,6 +10,9 @@ from starlette.exceptions import HTTPException
 
 from app.agent import AgentModel, AgentService
 from app.agent_schemas import AgentRequest, AgentResponse
+from app.comparison import COMPARISON_SYSTEM_PROMPT, ComparisonService
+from app.comparison_tools import COMPARISON_TOOL_SPECS
+from app.comparison_schemas import ComparisonRequest, ComparisonResponse, ComparisonUploadResponse
 from app.config import Settings
 from app.embeddings import Embedder, LocalEmbedder
 from app.errors import AppError
@@ -31,12 +34,32 @@ def error_response(status: int, code: str, message: str) -> JSONResponse:
     return JSONResponse(status_code=status, content={"error": {"code": code, "message": message}})
 
 
+async def read_pdf_upload(file: UploadFile, config: Settings) -> tuple[bytes, str]:
+    """Apply the same bounded upload validation in every mode."""
+    filename = (file.filename or "").replace("\\", "/").split("/")[-1]
+    if not filename.lower().endswith(".pdf") or file.content_type not in (
+        "application/pdf",
+        "application/octet-stream",
+        None,
+    ):
+        raise AppError(415, "unsupported_file", "Kies een PDF-bestand met de extensie .pdf.")
+    data = await file.read(config.max_upload_mb * 1024 * 1024 + 1)
+    if len(data) > config.max_upload_mb * 1024 * 1024:
+        raise AppError(
+            413, "file_too_large", f"De PDF mag maximaal {config.max_upload_mb} MB groot zijn."
+        )
+    if not data:
+        raise AppError(400, "empty_file", "Dit bestand is leeg. Kies een PDF met tekst.")
+    return data, filename
+
+
 def create_app(
     settings: Settings | None = None,
     *,
     embedder: Embedder | None = None,
     generator: AnswerGenerator | None = None,
     agent_model: AgentModel | None = None,
+    comparison_model: AgentModel | None = None,
 ) -> FastAPI:
     config = settings if settings is not None else Settings()
     service = RAGService(
@@ -56,6 +79,16 @@ def create_app(
     app.state.agent = AgentService(
         service,
         agent_model if agent_model is not None else GeminiAgentModel(config),
+    )
+    app.state.comparison = ComparisonService(
+        service,
+        comparison_model
+        if comparison_model is not None
+        else GeminiAgentModel(
+            config,
+            system_prompt=COMPARISON_SYSTEM_PROMPT,
+            tool_specs=COMPARISON_TOOL_SPECS,
+        ),
     )
     app.add_middleware(
         CORSMiddleware,
@@ -100,29 +133,32 @@ def create_app(
     async def upload(file: Annotated[UploadFile, File()]) -> UploadResponse:
         revision = service.store.begin_upload()
         try:
-            filename = (file.filename or "").replace("\\", "/").split("/")[-1]
-            if not filename.lower().endswith(".pdf") or file.content_type not in (
-                "application/pdf",
-                "application/octet-stream",
-                None,
-            ):
-                raise AppError(
-                    415, "unsupported_file", "Kies een PDF-bestand met de extensie .pdf."
-                )
-            limit = config.max_upload_mb * 1024 * 1024
-            data = await file.read(limit + 1)
-            if len(data) > limit:
-                raise AppError(
-                    413,
-                    "file_too_large",
-                    f"De PDF mag maximaal {config.max_upload_mb} MB groot zijn.",
-                )
-            if not data:
-                raise AppError(400, "empty_file", "Dit bestand is leeg. Kies een PDF met tekst.")
-            # PDF/FAISS work and synchronous SDK calls must not block the ASGI event loop.
+            data, filename = await read_pdf_upload(file, config)
             return await run_in_threadpool(service.ingest, data, filename, revision)
         finally:
             await file.close()
+
+    @app.post(
+        "/api/comparisons/documents", response_model=ComparisonUploadResponse, status_code=201
+    )
+    async def upload_comparison(
+        document_a: Annotated[UploadFile, File()],
+        document_b: Annotated[UploadFile, File()],
+    ) -> ComparisonUploadResponse:
+        revision = app.state.comparison.store.begin_upload()
+        try:
+            a, name_a = await read_pdf_upload(document_a, config)
+            b, name_b = await read_pdf_upload(document_b, config)
+            return await run_in_threadpool(
+                app.state.comparison.ingest, a, name_a, b, name_b, revision
+            )
+        finally:
+            await document_a.close()
+            await document_b.close()
+
+    @app.post("/api/comparisons", response_model=ComparisonResponse)
+    def compare(request: ComparisonRequest) -> ComparisonResponse:
+        return app.state.comparison.run(request)
 
     @app.post("/api/questions", response_model=QuestionResponse)
     def ask(request: QuestionRequest) -> QuestionResponse:

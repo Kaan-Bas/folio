@@ -4,11 +4,14 @@ import { AgentPanel } from './components/AgentPanel'
 import { Icon } from './components/Icon'
 import { UploadPanel } from './components/UploadPanel'
 import { useAssistant } from './useAssistant'
+import { useComparison } from './useComparison'
+import { ComparisonPanel } from './components/ComparisonPanel'
 
 export default function App() {
   const assistant = useAssistant()
+  const comparison = useComparison(assistant.health?.max_upload_mb ?? 10)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
-  const [mode, setMode] = useState<'chat' | 'agent'>('chat')
+  const [mode, setMode] = useState<'chat' | 'agent' | 'comparison'>('chat')
 
   useEffect(() => {
     if (!assistant.file) {
@@ -44,7 +47,7 @@ export default function App() {
             <button
               type="button"
               aria-pressed={mode === 'chat'}
-              disabled={assistant.busy !== null}
+              disabled={assistant.busy !== null || comparison.busy !== null}
               onClick={() => setMode('chat')}
             >
               Document Chat
@@ -52,10 +55,18 @@ export default function App() {
             <button
               type="button"
               aria-pressed={mode === 'agent'}
-              disabled={assistant.busy !== null}
+              disabled={assistant.busy !== null || comparison.busy !== null}
               onClick={() => setMode('agent')}
             >
-              AI Agent
+              Refund Review
+            </button>
+            <button
+              type="button"
+              aria-pressed={mode === 'comparison'}
+              disabled={assistant.busy !== null || comparison.busy !== null}
+              onClick={() => setMode('comparison')}
+            >
+              Document Comparison
             </button>
           </div>
         </div>
@@ -70,35 +81,39 @@ export default function App() {
             backend om antwoorden te genereren. Embeddings worden lokaal gemaakt.
           </div>
         )}
-        <div className="workspace">
-          <UploadPanel
-            document={assistant.document}
-            uploading={assistant.busy === 'upload'}
-            maxMb={assistant.health?.max_upload_mb ?? 10}
-            onUpload={assistant.upload}
-          />
-          {mode === 'chat' ? (
-            <ChatPanel
+        {mode === 'comparison' ? (
+          <ComparisonPanel model={comparison} />
+        ) : (
+          <div className="workspace">
+            <UploadPanel
               document={assistant.document}
-              messages={assistant.messages}
-              busy={assistant.busy}
-              pdfUrl={pdfUrl}
-              maxQuestionLength={assistant.health?.max_question_chars ?? 2000}
-              error={assistant.error}
-              onAsk={assistant.ask}
+              uploading={assistant.busy === 'upload'}
+              maxMb={assistant.health?.max_upload_mb ?? 10}
+              onUpload={assistant.upload}
             />
-          ) : (
-            <AgentPanel
-              key={assistant.document?.document_id ?? 'no-document'}
-              document={assistant.document}
-              busy={assistant.busy}
-              result={assistant.agentResult}
-              error={assistant.error}
-              pdfUrl={pdfUrl}
-              onRun={assistant.investigate}
-            />
-          )}
-        </div>
+            {mode === 'chat' ? (
+              <ChatPanel
+                document={assistant.document}
+                messages={assistant.messages}
+                busy={assistant.busy}
+                pdfUrl={pdfUrl}
+                maxQuestionLength={assistant.health?.max_question_chars ?? 2000}
+                error={assistant.error}
+                onAsk={assistant.ask}
+              />
+            ) : (
+              <AgentPanel
+                key={assistant.document?.document_id ?? 'no-document'}
+                document={assistant.document}
+                busy={assistant.busy}
+                result={assistant.agentResult}
+                error={assistant.error}
+                pdfUrl={pdfUrl}
+                onRun={assistant.investigate}
+              />
+            )}
+          </div>
+        )}
         <footer className="app-footer">
           <span>Gebouwd om informatie begrijpelijk te maken.</span>
           <span>Upload → zoeken → onderbouwd antwoord</span>

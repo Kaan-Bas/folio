@@ -67,6 +67,12 @@ class RAGService:
         self.store = DocumentStore()
 
     def ingest(self, data: bytes, filename: str, revision: UUID) -> UploadResponse:
+        document = self.build_document(data, filename, revision)
+        self.store.install(document)
+        return self.describe(document)
+
+    def build_document(self, data: bytes, filename: str, document_id: UUID) -> Document:
+        """Build an isolated index; the caller decides which store owns this document."""
         pdf = extract_pdf(
             data, max_pages=self.settings.max_pages, max_chars=self.settings.max_extracted_chars
         )
@@ -80,31 +86,40 @@ class RAGService:
                 "Deze PDF levert te veel tekstfragmenten op. Gebruik een kleiner document.",
             )
         vectors = self.embedder.embed([chunk.text for chunk in chunks])
-        self.store.install(
-            Document(
-                id=revision,
-                index=VectorIndex(chunks, vectors),
-                filename=filename,
-                page_count=pdf.total_pages,
-            )
-        )
-        return UploadResponse(
-            document_id=revision,
+        return Document(
+            id=document_id,
+            index=VectorIndex(chunks, vectors),
             filename=filename,
             page_count=pdf.total_pages,
-            text_page_count=len(pdf.pages),
-            chunk_count=len(chunks),
+        )
+
+    @staticmethod
+    def describe(document: Document) -> UploadResponse:
+        return UploadResponse(
+            document_id=document.id,
+            filename=document.filename,
+            page_count=document.page_count,
+            text_page_count=len({chunk.page for chunk in document.index.chunks}),
+            chunk_count=len(document.index.chunks),
         )
 
     def search(self, document_id: UUID, query: str) -> list[SearchHit]:
         """Shared retrieval for Document Chat and the agent; never build a second index."""
         document = self.store.get(document_id)
-        vector = self.embedder.embed([query], is_query=True)
-        hits = document.index.search(
-            vector, top_k=self.settings.top_k, min_similarity=self.settings.min_similarity
-        )
+        hits = self.search_in(document, query)
         self.store.get(document_id)
         return hits
+
+    def search_in(
+        self, document: Document, query: str, *, top_k: int | None = None
+    ) -> list[SearchHit]:
+        """Search only the supplied index, using the same embedding instance and configuration."""
+        vector = self.embedder.embed([query], is_query=True)
+        return document.index.search(
+            vector,
+            top_k=top_k if top_k is not None else self.settings.top_k,
+            min_similarity=self.settings.min_similarity,
+        )
 
     def ask(self, request: QuestionRequest) -> QuestionResponse:
         document = self.store.get(request.document_id)

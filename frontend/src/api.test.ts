@@ -1,7 +1,52 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ApiError, askQuestion, getHealth, investigateReturn, uploadDocument } from './api'
+import {
+  ApiError,
+  askQuestion,
+  compareDocuments,
+  getHealth,
+  investigateReturn,
+  uploadComparison,
+  uploadDocument,
+} from './api'
 
 describe('API contract', () => {
+  it('uploads a comparison atomically and sends both document IDs in the request', async () => {
+    const pair = {
+      comparison_id: 'pair-id',
+      document_a: {
+        document_id: 'a-id',
+        filename: 'a.pdf',
+        page_count: 1,
+        text_page_count: 1,
+        chunk_count: 1,
+      },
+      document_b: {
+        document_id: 'b-id',
+        filename: 'b.pdf',
+        page_count: 1,
+        text_page_count: 1,
+        chunk_count: 1,
+      },
+    }
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => pair })
+    vi.stubGlobal('fetch', fetchMock)
+    const a = new File(['%PDF'], 'a.pdf', { type: 'application/pdf' })
+    const b = new File(['%PDF'], 'b.pdf', { type: 'application/pdf' })
+    await uploadComparison(a, b)
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toMatch(/\/api\/comparisons\/documents$/)
+    expect(options.body.get('document_a')).toBe(a)
+    expect(options.body.get('document_b')).toBe(b)
+    expect(options.headers).toBeUndefined()
+    await compareDocuments(pair, 'Vergelijk voorwaarden.', 'broad')
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({
+      comparison_id: 'pair-id',
+      document_a_id: 'a-id',
+      document_b_id: 'b-id',
+      instruction: 'Vergelijk voorwaarden.',
+      scope: 'broad',
+    })
+  })
   it('uploads multipart without overriding the browser content type', async () => {
     const fetchMock = vi
       .fn()

@@ -1,4 +1,12 @@
-import type { AgentResponse, Answer, HealthResponse, UploadedDocument } from './types'
+import type {
+  AgentResponse,
+  Answer,
+  ComparisonPair,
+  ComparisonResponse,
+  ComparisonScope,
+  HealthResponse,
+  UploadedDocument,
+} from './types'
 
 // The only frontend environment setting is a public URL, never an API key.
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000').replace(/\/$/, '')
@@ -84,6 +92,33 @@ export function investigateReturn(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ document_id: documentId, instruction, order_id: orderId }),
+    signal,
+  })
+}
+
+export function uploadComparison(a: File, b: File, signal?: AbortSignal): Promise<ComparisonPair> {
+  const body = new FormData()
+  body.append('document_a', a)
+  body.append('document_b', b)
+  return request('/api/comparisons/documents', { method: 'POST', body, signal })
+}
+
+export function compareDocuments(
+  pair: ComparisonPair,
+  instruction: string,
+  scope: ComparisonScope,
+  signal?: AbortSignal,
+): Promise<ComparisonResponse> {
+  return request('/api/comparisons', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      comparison_id: pair.comparison_id,
+      document_a_id: pair.document_a.document_id,
+      document_b_id: pair.document_b.document_id,
+      instruction,
+      scope,
+    }),
     signal,
   })
 }
