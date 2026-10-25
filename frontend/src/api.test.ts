@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   ApiError,
+  analyzeInvoice,
   askQuestion,
   compareDocuments,
   getHealth,
@@ -10,6 +11,21 @@ import {
 } from './api'
 
 describe('API contract', () => {
+  it('sends only the document ID and task to the invoice endpoint', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ review_status: 'validated' }) })
+    vi.stubGlobal('fetch', fetchMock)
+    const controller = new AbortController()
+    await analyzeInvoice('invoice-doc', 'Controleer de factuur.', controller.signal)
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toMatch(/\/api\/invoices\/analyze$/)
+    expect(JSON.parse(options.body)).toEqual({
+      document_id: 'invoice-doc',
+      instruction: 'Controleer de factuur.',
+    })
+    expect(options.signal).toBe(controller.signal)
+  })
   it('uploads a comparison atomically and sends both document IDs in the request', async () => {
     const pair = {
       comparison_id: 'pair-id',

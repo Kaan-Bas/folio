@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     comparison_max_tool_calls: int = Field(default=12, ge=2, le=24)
     comparison_timeout_seconds: float = Field(default=120, gt=0, le=300)
     comparison_max_context_chars: int = Field(default=60000, ge=4000, le=120000)
+    invoice_max_tool_calls: int = Field(default=7, ge=1, le=16)
+    invoice_timeout_seconds: float = Field(default=120, gt=0, le=300)
+    invoice_max_document_chars: int = Field(default=24000, ge=1000, le=60000)
+    invoice_max_output_tokens: int = Field(default=4096, ge=1024, le=8192)
     embedding_model: str = Field(default="intfloat/multilingual-e5-small", min_length=1)
     embedding_cache_dir: Path = ROOT / ".model_cache"
     embedding_local_files_only: bool = False

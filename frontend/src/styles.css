@@ -136,6 +136,7 @@ main {
   border: 1px solid #dfe2d7;
   border-radius: 10px;
   background: #ecefe5;
+  flex-wrap: wrap;
 }
 .mode-switch button {
   border: 0;
@@ -472,6 +473,133 @@ main {
 }
 .evidence-note.uncertain {
   color: #826330;
+}
+.invoice-status {
+  font-size: 10px;
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: #faf2e3;
+  color: #826330;
+}
+.invoice-status.validated {
+  background: #eef4e8;
+  color: #3f663d;
+}
+.invoice-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 22px 0;
+}
+.invoice-fields > div {
+  border: 1px solid #e1e7d8;
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 0;
+}
+.invoice-fields dt {
+  font-size: 10px;
+  color: #657b56;
+  margin-bottom: 5px;
+}
+.invoice-fields dd {
+  margin: 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  color: #394c33;
+}
+.invoice-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+.invoice-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 470px;
+  font-size: 11px;
+  text-align: left;
+}
+.invoice-table caption {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.invoice-table th {
+  background: #f4f7ee;
+  color: #57704a;
+}
+.invoice-table td,
+.invoice-table th {
+  border-bottom: 1px solid #e3e9da;
+  padding: 11px 9px;
+}
+.invoice-table small {
+  display: block;
+  color: #6a7c5c;
+  margin-top: 4px;
+}
+.invoice-checks {
+  border-top: 1px solid #e3e9da;
+  padding-top: 20px;
+  margin-top: 25px;
+}
+.invoice-checks ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.invoice-checks li {
+  padding: 11px 0;
+  border-bottom: 1px solid #e8ecdf;
+}
+.invoice-checks li > div {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.invoice-checks strong {
+  font-size: 11px;
+  font-weight: 500;
+  color: #465b3b;
+}
+.invoice-checks li p {
+  margin-top: 5px;
+  color: #6a7c5c;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.invoice-review {
+  border: 1px solid #dde6d2;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 25px;
+  background: #f7f9f2;
+}
+.invoice-review label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+}
+.invoice-review input {
+  accent-color: var(--green);
+}
+.invoice-review p {
+  font-size: 10px;
+  line-height: 1.8;
+  margin: 8px 0 14px;
+  color: #657b56;
+}
+@media (max-width: 720px) {
+  .mode-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .invoice-fields {
+    grid-template-columns: 1fr;
+  }
 }
 @media (max-width: 1050px) {
   .comparison-workspace {

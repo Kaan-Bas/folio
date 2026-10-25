@@ -1,0 +1,7 @@
+[
+  {"filename": "invoice_correct.pdf", "case": "correct", "invoice_number": "INV-DEMO-2026-001", "po_number": "PO-DEMO-1001", "unit_price": "125.00", "quantity": "2", "line_total": "250.00", "subtotal": "330.00", "tax_rate": "21", "tax_amount": "69.30", "total_amount": "399.30", "due_date": "2026-11-20"},
+  {"filename": "invoice_wrong_total.pdf", "case": "wrong_total", "invoice_number": "INV-DEMO-2026-002", "po_number": "PO-DEMO-1001", "unit_price": "125.00", "quantity": "2", "line_total": "250.00", "subtotal": "330.00", "tax_rate": "21", "tax_amount": "69.30", "total_amount": "409.30", "due_date": "2026-11-20"},
+  {"filename": "invoice_price_difference.pdf", "case": "price_difference", "invoice_number": "INV-DEMO-2026-003", "po_number": "PO-DEMO-1001", "unit_price": "135.00", "quantity": "2", "line_total": "270.00", "subtotal": "350.00", "tax_rate": "21", "tax_amount": "73.50", "total_amount": "423.50", "due_date": "2026-11-20"},
+  {"filename": "invoice_unknown_po.pdf", "case": "unknown_po", "invoice_number": "INV-DEMO-2026-004", "po_number": "PO-DEMO-9999", "unit_price": "125.00", "quantity": "2", "line_total": "250.00", "subtotal": "330.00", "tax_rate": "21", "tax_amount": "69.30", "total_amount": "399.30", "due_date": "2026-11-20"},
+  {"filename": "invoice_missing_data.pdf", "case": "missing_data", "invoice_number": "INV-DEMO-2026-005", "po_number": "PO-DEMO-1001", "unit_price": null, "quantity": "2", "line_total": "250.00", "subtotal": "330.00", "tax_rate": null, "tax_amount": "69.30", "total_amount": "399.30", "due_date": null}
+]

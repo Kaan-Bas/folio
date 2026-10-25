@@ -8,6 +8,10 @@ const labels: Record<string, string> = {
   list_document_sections: 'Documentstructuur bekijken',
   search_document: 'Document doorzoeken',
   get_document_passage: 'Bronpassage controleren',
+  extract_invoice_data: 'Factuurgegevens extraheren',
+  get_purchase_order: 'Fictieve inkooporder ophalen',
+  validate_invoice_totals: 'Factuurbedragen controleren',
+  compare_invoice_with_order: 'Factuur met inkooporder vergelijken',
 }
 const statuses = {
   success: 'Geslaagd',

@@ -16,7 +16,11 @@ from app.comparison_schemas import ComparisonRequest, ComparisonResponse, Compar
 from app.config import Settings
 from app.embeddings import Embedder, LocalEmbedder
 from app.errors import AppError
-from app.gemini import GeminiAgentModel, GeminiAnswerGenerator
+from app.gemini import GeminiAgentModel, GeminiAnswerGenerator, GeminiInvoiceExtractor
+from app.invoice import INVOICE_SYSTEM_PROMPT, InvoiceService
+from app.invoice_extraction import InvoiceExtractor
+from app.invoice_schemas import InvoiceRequest, InvoiceResponse
+from app.invoice_tools import INVOICE_TOOL_SPECS
 from app.llm import AnswerGenerator
 from app.schemas import (
     ErrorResponse,
@@ -60,6 +64,8 @@ def create_app(
     generator: AnswerGenerator | None = None,
     agent_model: AgentModel | None = None,
     comparison_model: AgentModel | None = None,
+    invoice_model: AgentModel | None = None,
+    invoice_extractor: InvoiceExtractor | None = None,
 ) -> FastAPI:
     config = settings if settings is not None else Settings()
     service = RAGService(
@@ -89,6 +95,18 @@ def create_app(
             system_prompt=COMPARISON_SYSTEM_PROMPT,
             tool_specs=COMPARISON_TOOL_SPECS,
         ),
+    )
+    app.state.invoice = InvoiceService(
+        service,
+        invoice_model
+        if invoice_model is not None
+        else GeminiAgentModel(
+            config,
+            system_prompt=INVOICE_SYSTEM_PROMPT,
+            tool_specs=INVOICE_TOOL_SPECS,
+            max_output_tokens=config.invoice_max_output_tokens,
+        ),
+        invoice_extractor if invoice_extractor is not None else GeminiInvoiceExtractor(config),
     )
     app.add_middleware(
         CORSMiddleware,
@@ -167,6 +185,10 @@ def create_app(
     @app.post("/api/agent", response_model=AgentResponse)
     def investigate(request: AgentRequest) -> AgentResponse:
         return app.state.agent.run(request)
+
+    @app.post("/api/invoices/analyze", response_model=InvoiceResponse)
+    def analyze_invoice(request: InvoiceRequest) -> InvoiceResponse:
+        return app.state.invoice.run(request)
 
     return app
 

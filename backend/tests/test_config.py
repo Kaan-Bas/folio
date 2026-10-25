@@ -12,6 +12,10 @@ def test_gemini_and_local_embedding_environment(monkeypatch):
     monkeypatch.setenv("COMPARISON_MAX_TOOL_CALLS", "8")
     monkeypatch.setenv("COMPARISON_TIMEOUT_SECONDS", "110")
     monkeypatch.setenv("COMPARISON_MAX_CONTEXT_CHARS", "45000")
+    monkeypatch.setenv("INVOICE_MAX_TOOL_CALLS", "6")
+    monkeypatch.setenv("INVOICE_TIMEOUT_SECONDS", "100")
+    monkeypatch.setenv("INVOICE_MAX_DOCUMENT_CHARS", "18000")
+    monkeypatch.setenv("INVOICE_MAX_OUTPUT_TOKENS", "3072")
     settings = Settings(_env_file=None)
     assert settings.configured
     assert settings.gemini_model == "configured-model"
@@ -21,6 +25,10 @@ def test_gemini_and_local_embedding_environment(monkeypatch):
     assert settings.comparison_max_tool_calls == 8
     assert settings.comparison_timeout_seconds == 110
     assert settings.comparison_max_context_chars == 45000
+    assert settings.invoice_max_tool_calls == 6
+    assert settings.invoice_timeout_seconds == 100
+    assert settings.invoice_max_document_chars == 18000
+    assert settings.invoice_max_output_tokens == 3072
     assert "test-env-key" not in repr(settings)
 
 
@@ -54,6 +62,14 @@ def test_dotenv_prefixes_preserve_required_trailing_spaces(tmp_path):
         {"comparison_timeout_seconds": 301},
         {"comparison_max_context_chars": 3999},
         {"comparison_max_context_chars": 120001},
+        {"invoice_max_tool_calls": 0},
+        {"invoice_max_tool_calls": 17},
+        {"invoice_timeout_seconds": 0},
+        {"invoice_timeout_seconds": 301},
+        {"invoice_max_document_chars": 999},
+        {"invoice_max_document_chars": 60001},
+        {"invoice_max_output_tokens": 1023},
+        {"invoice_max_output_tokens": 8193},
         {"gemini_model": ""},
         {"embedding_model": ""},
     ],

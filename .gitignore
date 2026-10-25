@@ -17,4 +17,5 @@ coverage/
 *.index
 data/
 examples/*.pdf
+examples/invoices/*.pdf
 .DS_Store

@@ -1,6 +1,6 @@
 # Folio - Document Chat en Agents
 
-Folio is een webapplicatie met drie functies: **Document Chat** voor vragen over een PDF, **Refund Review** voor fictieve retourverzoeken en **Document Comparison** voor het vergelijken van twee PDF-versies. Alle functies tonen controleerbare document- en paginaverwijzingen. Chat en retouranalyse delen één document; vergelijkingen gebruiken een onafhankelijk documentpaar.
+Folio is een webapplicatie met vier functies: **Document Chat**, **Refund Review**, **Document Comparison** en **Invoice Processing**. De factuuragent extraheert gegevens, controleert berekeningen en vergelijkt uitsluitend fictieve inkooporders. Alle functies tonen controleerbare document- en paginaverwijzingen. Chat, retouranalyse en factuurverwerking delen één document; vergelijkingen gebruiken een onafhankelijk documentpaar.
 
 De applicatie gebruikt Retrieval-Augmented Generation (RAG): relevante tekst wordt uit het document opgehaald en als context aan een taalmodel (LLM) doorgegeven. Embeddings en zoekopdrachten worden lokaal uitgevoerd. Document Chat stuurt alleen de vraag en de gevonden fragmenten naar de LLM-provider. De agent stuurt daarnaast zijn opdracht en de resultaten van uitgevoerde tools mee, zoals fictieve bestelgegevens en berekende kalenderdagen.
 
@@ -13,7 +13,8 @@ De applicatie gebruikt Retrieval-Augmented Generation (RAG): relevante tekst wor
 - Antwoorden bekijken met geciteerde tekstfragmenten en links naar de bronpagina's.
 - Een melding bij onvoldoende context, ontbrekende configuratie of verwerkingsfouten.
 - Een document vervangen, waarbij de vorige index en de chat worden gewist.
-- Wisselen tussen Document Chat, Refund Review en Document Comparison met behoud van de toestand per functie.
+- Wisselen tussen Document Chat, Refund Review, Document Comparison en Invoice Processing.
+- Factuurgegevens extraheren, deterministisch controleren, lokaal als beoordeeld markeren en naar JSON exporteren.
 - De agent zelf tools laten kiezen voor beleid zoeken, fictieve orders lezen en kalenderdagen berekenen.
 - Conceptadvies bekijken met een overzicht van uitgevoerde tools en hun status, zonder financiële acties.
 
@@ -201,7 +202,7 @@ In de voorbeelden verandert de retourtermijn van 14 naar 30 dagen. De retourverz
 
 `RAGService.build_document` hergebruikt PDF-extractie, chunking en dezelfde lokale embeddinginstantie. `RAGService.search_in` doorzoekt één expliciet meegegeven FAISS-index. Een apart `ComparisonStore` bewaart één actief paar zonder de bestaande chat-/retourindex te vervangen. Iedere PDF krijgt een unieke UUID, ook wanneer beide bestanden dezelfde naam of inhoud hebben.
 
-Beide agents gebruiken `run_tool_loop` in `agent_loop.py` en dezelfde `GeminiAgentModel`-implementatie, met eigen systeeminstructies en tooldefinities. Gemini kiest tools met `AUTO`; SDK-autodispatch staat uit. Iedere poging telt afzonderlijk, inclusief batches, ongeldige argumenten en geblokkeerde tools. Na het budget wordt `NONE` ingesteld en wordt een alsnog gevraagde extra tool niet uitgevoerd.
+De agents gebruiken `run_tool_loop` in `agent_loop.py` en dezelfde `GeminiAgentModel`-implementatie, met eigen systeeminstructies en tooldefinities. Gemini kiest tools met `AUTO`; SDK-autodispatch staat uit. Iedere poging telt afzonderlijk, inclusief batches, ongeldige argumenten en geblokkeerde tools. Na het budget wordt `NONE` ingesteld en wordt een alsnog gevraagde extra tool niet uitgevoerd.
 
 ```mermaid
 flowchart TD
@@ -263,6 +264,129 @@ De volledige backendtests, frontendtests en build worden uitgevoerd met de comma
 Er is geen OCR, vaste evaluatieset voor vergelijkingskwaliteit of betrouwbare algemene sectieherkenning. Overzichten zijn paginagebaseerd en begrensd. Grote documenten worden door tool- en contextbudgetten meestal gedeeltelijk onderzocht. Een deadline kan lopende lokale inferentie niet hard onderbreken. De opslag blijft gedeeld per proces en verdwijnt bij een herstart. Verdere uitbreidingen zijn een vaste evaluatieset voor wijzigingen en afwezigheid, paginering van overzichten, betere sectieherkenning en tokenbewuste contextselectie.
 
 
+## Invoice Processing gebruiken
+
+De Invoice Processing Agent onderzoekt één tekstgebaseerde, fictieve PDF-factuur. Hij kiest zelf welke tools de opdracht nodig heeft. De bestaande upload wordt gebruikt; de factuur kan daarna ook in Document Chat worden bekeken. Een vergelijking van twee documenten blijft een afzonderlijke functie.
+
+### Testfacturen en starten
+
+Genereer de vijf nieuwe voorbeelden vanuit de hoofdmap. Bestaande voorbeeld-PDF's worden niet gewijzigd:
+
+```powershell
+.\.venv\Scripts\python.exe backend/scripts/create_invoice_examples.py
+```
+
+De bestanden staan in `examples/invoices/`; de brongegevens staan daar in `cases.json`. De fictieve PO's staan in `backend/app/fixtures/purchase_orders.json`. De bestaande installatie- en startcommando's blijven gelden; extra dependencies of sleutels zijn niet nodig.
+
+1. Kies **Invoice Processing** en upload een voorbeeld via het bestaande linkerpaneel.
+2. Gebruik de standaardopdracht voor reken- en PO-controle, of bijvoorbeeld 'Wat is het factuurnummer?' voor alleen extractie.
+3. Bekijk de geëxtraheerde gegevens, daadwerkelijk uitgevoerde controles en PDF-citaten.
+4. Beoordeel het resultaat en markeer het eventueel lokaal als gecontroleerd.
+5. Exporteer het resultaat met **Exporteer JSON**. Een nieuwe upload of analyse wist de reviewmarkering.
+
+| Voorbeeld | Bedoelde controle-uitkomst |
+| --- | --- |
+| `invoice_correct.pdf` | PO-DEMO-1001; subtotaal 330,00, btw 69,30 en totaal 399,30 EUR; bij volledige juiste extractie slagen de controles |
+| `invoice_wrong_total.pdf` | Vermeld totaal 409,30 EUR; de rekencontrole en PO-vergelijking vinden een afwijking |
+| `invoice_price_difference.pdf` | Eenheidsprijs 135,00 in plaats van 125,00 EUR; factuur rekent intern correct, maar wijkt af van de PO |
+| `invoice_unknown_po.pdf` | PO-DEMO-9999 ontbreekt; er wordt geen andere order als vervanging gekozen |
+| `invoice_missing_data.pdf` | Vervaldatum, eerste eenheidsprijs en btw-percentage ontbreken en blijven null |
+
+Een factuur moet het label `FICTIEVE TESTFACTUUR` bevatten. Zonder dat label begint geen LLM-analyse. Het label is een demobeperking, geen betrouwbare detectie van echte persoonsgegevens en geen anonimisering. Deze versie is uitsluitend bedoeld voor fictieve documenten; er is geen betalings- of boekhoudkoppeling.
+
+### Tools en workflow
+
+| Tool | Argumenten | Gedrag |
+| --- | --- | --- |
+| `extract_invoice_data` | `document_id` | Gemini Structured Output plus Pydantic, gevolgd door controle tegen letterlijke quotes; herhaalde aanroepen hergebruiken dezelfde extractie |
+| `get_purchase_order` | `po_number` | Leest alleen een lokale fictieve PO met exact het nummer uit de onderbouwde factuurextractie |
+| `validate_invoice_totals` | `document_id` | Controleert server-side extractie met Decimal; het model levert geen eigen bedragen aan |
+| `compare_invoice_with_order` | `document_id`, `po_number` | Vergelijkt server-side factuurgegevens met de eerder opgehaalde, bijbehorende PO |
+
+De laatste twee tools zijn bewuste equivalenten van tools met een volledig `invoice_data`-argument: de server bewaart de extractie en PO binnen de aanvraag. Daardoor kan het LLM geen waarden aanpassen of een verkeerde order laten vergelijken door een herschreven factuurobject als toolargument te geven. Validaties vóór extractie, verkeerde document-ID's, andere PO-nummers en niet-toegestane tools worden geblokkeerd.
+
+```mermaid
+flowchart TD
+    A[Opdracht en actieve document-ID] --> B[LLM kiest benodigde tool]
+    B --> C[Allowlist, argumenten, deadline en documentrevisie controleren]
+    C --> D[Extractie, PO-opvraag of deterministische controle]
+    D --> E[Onbetrouwbaar toolresultaat terug naar het model]
+    E --> B
+    B --> F[Korte gestructureerde AI-samenvatting]
+    F --> G[Backend combineert extractie, checks, bronnen en reviewstatus]
+    G --> H[Menselijke review en lokale JSON-export]
+```
+
+De gedeelde `run_tool_loop` verzorgt echte Gemini Function Calling met dezelfde veiligheidsgrenzen als de andere agents. Er is geen vaste keten die altijd vier tools uitvoert. Alleen een factuurnummer opvragen kan met één extractietool. Een volledige analyse kan daarnaast de PO, rekencontrole en ordervergelijking gebruiken.
+
+De extractietool doet zelf één afzonderlijke, gestructureerde LLM-aanroep, zonder tools. Dat is gegevensverwerking binnen dezelfde agent, geen tweede autonome agent. Het resultaat wordt binnen de aanvraag gecachet. Standaard zijn maximaal zeven toolpogingen en acht loopmodelbeurten toegestaan, plus hoogstens één extractieaanroep: maximaal negen LLM-requests. Ongeldige en geblokkeerde pogingen tellen mee. Na het toolbudget kan het model alleen nog een eindantwoord geven; een extra tool wordt niet uitgevoerd.
+
+De volledige geëxtraheerde paginatekst wordt gebruikt in plaats van een selectie van RAG-hits. Dat voorkomt dat regelbedragen door retrieval buiten beeld vallen. `Document` bewaart hiervoor de oorspronkelijke `PageText`-gegevens naast dezelfde FAISS-index. De bestaande PDF-validatie, embeddings en RAG-functionaliteit blijven beschikbaar. Een factuur boven `INVOICE_MAX_DOCUMENT_CHARS` wordt afgewezen; tekst wordt niet stilzwijgend afgekapt.
+
+### Datamodellen en broncontrole
+
+`InvoiceData` bevat factuurnummer, leverancier, factuurdatum, vervaldatum, PO-nummer, valuta, factuurregels, subtotaal, btw-percentage, btw-bedrag en totaalbedrag. Iedere regel bevat productcode, omschrijving, aantal, eenheidsprijs en regelbedrag. Ontbrekende velden zijn expliciet null. Er worden maximaal twintig regels ondersteund.
+
+`InvoiceExtraction` voegt quotes met veldpad en fysiek paginanummer toe. Alleen quotes die letterlijk in de betreffende PDF-pagina voorkomen, worden gebruikt. Niet-lege veldwaarden moeten ook in de quote terug te vinden zijn. Numerieke controle herkent onder meer punt- en kommadecimalen; datums worden gecontroleerd in ISO- of dag-maand-jaarvorm. Niet-onderbouwde velden worden null, met een ontbrekend-veldcontrole. Een volledige factuurregel kan één gezamenlijke quote gebruiken.
+
+Gemini ontvangt een compact uitvoerschema met direct opgenomen objecten, verplichte velden en expliciete null-waarden. Bedragen worden uitsluitend als string of null gevraagd. Het volledige Pydantic-schema met verwijzingen en numerieke metadata wordt niet naar de provider gestuurd, omdat dit een schema-afwijzing kan veroorzaken. De backend valideert het modelantwoord daarna met het oorspronkelijke Pydantic-model, inclusief precisie, datums, aantallen en overige limieten.
+
+Dit is een controle op tekstuele herkomst, geen gemeten garantie dat een model iedere tabelcel semantisch goed heeft begrepen. Een bedrag kan bijvoorbeeld verkeerd aan een kolom worden gekoppeld. Controle van de oorspronkelijke PDF blijft nodig. Bronquotes krijgen `score=0.0` als technische placeholder; dit is geen retrieval- of betrouwbaarheidsscore.
+
+### Deterministische validatie
+
+Alle berekeningen gebruiken Python `Decimal`. Bedragen en aantallen worden als decimale strings verwerkt en in de API als strings teruggegeven. JSON-floats worden voor die velden afgewezen. Er wordt geen ontbrekende waarde uit een totaal teruggerekend.
+
+- Regelbedrag: aantal × eenheidsprijs, afgerond op twee decimalen met `ROUND_HALF_UP`.
+- Subtotaal: som van de berekende regelbedragen.
+- Btw: vermeld subtotaal × expliciet vermeld btw-percentage / 100, afgerond op centen.
+- Totaal: vermeld subtotaal + vermeld btw-bedrag.
+- Extra controles: positieve aantallen, niet-negatieve prijzen/totalen, percentage tussen 0 en 100 en volgorde van factuur- en vervaldatum.
+- PO-vergelijking: leverancier, PO-nummer, producten, aantallen, eenheidsprijzen, regelbedragen, valuta, totaal en een niet-geannuleerde orderstatus.
+
+Productregels worden op productcode gekoppeld; zonder code wordt een eenduidige, genormaliseerde omschrijving gebruikt. Er is geen fuzzy matching. Dubbele of ontbrekende koppelingen worden niet stilzwijgend opgelost. Bij tekstvergelijkingen worden hoofdletters en witruimte genormaliseerd. Iedere check bevat een fase, status (`passed`, `failed`, `missing`), toelichting en eventueel verwachte en aangetroffen waarden.
+
+### Reviewstatus en export
+
+De backend bepaalt `review_status`; het model mag uitsluitend een korte samenvatting leveren:
+
+| Status | Betekenis |
+| --- | --- |
+| `validated` | Er zijn reken- of PO-controles uitgevoerd; de uitgevoerde controles zijn geslaagd en er zijn geen gemelde ontbrekende gegevens of onopgeloste toolfouten |
+| `discrepancy_found` | Minstens één uitgevoerde controle vond een concrete afwijking |
+| `insufficient_data` | Gegevens ontbreken, een PO is onbekend, een toolfout is niet hersteld of er is alleen extractie uitgevoerd |
+| `error` | Het onderzoek is niet afgerond, bijvoorbeeld door quota, timeout, ongeldig modelresultaat, vervangen document of toolbudget |
+
+Een geslaagde technische controle betekent geen financiële of juridische goedkeuring. Een tool met uitvoerstatus `success` kan controle-uitkomsten `failed` bevatten: de berekening is uitgevoerd en vond juist een afwijking.
+
+De menselijke reviewmarkering is een boolean in de lokale frontendstatus. Hij wordt niet naar de backend geschreven en verdwijnt bij verversen, een nieuwe upload of een nieuwe analyse. De JSON-export bevat het werkelijke serverresultaat, exacte decimale strings, nulls, checks, bronnen en de afzonderlijke lokale markering. `financial_approval` en `payment_executed` blijven altijd false. Export is uitgeschakeld bij ontbrekende extractie of een afgebroken onderzoek. Er is geen CSV-export in deze versie.
+
+### API, tests en beperkingen
+
+`POST /api/invoices/analyze` gebruikt de document-ID uit `POST /api/documents`:
+
+```json
+{
+  "document_id": "72f4ad1a-a940-4720-a021-2d32fdff5978",
+  "instruction": "Analyseer de factuur, controleer de berekeningen en vergelijk de inkooporder."
+}
+```
+
+Een geldig request geeft HTTP 200 met `invoice_data`, `validations`, `discrepancies`, `sources`, `summary`, `review_status`, `tool_calls`, `tool_call_limit`, `error` en `disclaimer`. Operationele fouten staan in `error`, zodat het uitgevoerde tooloverzicht behouden blijft. Ongeldige requests geven HTTP 422. De bestaande endpoints behouden hun contracten.
+
+Specifieke backendtests:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_invoice.py backend/tests/test_invoice_gemini.py -q
+```
+
+De tests mocken Gemini. De SDK-integratietest gebruikt echt SDK-serialisatiegedrag met gemockt HTTP-verkeer. Dit bewijst geen live extractiekwaliteit, providerbeschikbaarheid of volledige bescherming tegen promptinjectie.
+
+De eerste versie ondersteunt uitsluitend tekst-PDF's met fictieve facturen, één btw-percentage en EUR-controles met centafronding. Creditnota's, kortingen, meerdere btw-tarieven, wisselkoersen, OCR, duplicaatfactuurdetectie, betalingen en boekhoudkoppelingen vallen buiten de implementatie. De deadline wordt tussen stappen gecontroleerd en begrenst providerrequests; lopende lokale bewerkingen worden niet hard afgebroken. Iedere modelbeurt stuurt de geschiedenis opnieuw mee, zodat limieten geen financieel kostenplafond zijn.
+
+Andere documenttypen kunnen later eigen schema's, extractie en controles krijgen boven op dezelfde PDF- en agentinfrastructuur. Mogelijke vervolgstappen zijn een vaste extractie-evaluatieset, meerdere btw-tarieven, veldcorrectie met auditlog en duurzame reviews; die zijn nu niet geïmplementeerd.
+
+
 ## Architectuur
 
 | Onderdeel | Technologie | Verantwoordelijkheid |
@@ -291,20 +415,27 @@ backend/
     llm.py           AnswerGenerator-interface, systeemprompt en antwoordmodel
     gemini.py        Huidige LLM-adapter, SDK-aanroepen en foutvertaling
     agent.py         Refund Review-service en instructies
-    agent_loop.py    Gedeelde begrensde tool-loop voor beide agents
+    agent_loop.py    Gedeelde begrensde tool-loop voor de agents
     comparison.py    Vergelijkingsservice en resultaat-/bewijscontrole
     comparison_store.py   Afzonderlijk, atomair vergelijkingspaar
     comparison_tools.py   Documentoverzicht, zoeken en passageopvraag
     comparison_schemas.py Vergelijkingsrequests, bevindingen, bronnen en dekking
+    invoice.py       Factuuragent en server-side reviewstatus
+    invoice_schemas.py Nullable extractie, Decimal-bedragen en API-modellen
+    invoice_extraction.py Controle van velden tegen letterlijke PDF-citaten
+    invoice_validation.py Deterministische reken- en PO-controles
+    invoice_tools.py Vier tools met server-side factuur-/PO-gegevens
     agent_schemas.py Agentrequests, responses en gevalideerde toolargumenten
     agent_tools.py   Drie tools en expliciete allowlist voor dispatch
     fixtures/demo_orders.json  Uitsluitend fictieve bestellingen
+    fixtures/purchase_orders.json  Uitsluitend fictieve inkooporders
     service.py       RAG-pipeline en documentlevenscyclus
     errors.py        Applicatiefouten
   scripts/
     create_example.py
     create_refund_policy.py
     create_comparison_examples.py
+    create_invoice_examples.py
     download_embeddings.py
   tests/
   pyproject.toml
@@ -316,7 +447,8 @@ frontend/
     validation.ts    Bestandsvalidatie in de browser
     useAssistant.ts  Document-, chat-, agent- en verzoekstatus
     useComparison.ts Vergelijkingspaar, bestanden, annuleren en rapportstatus
-    components/      UploadPanel, ChatPanel, AgentPanel, ComparisonPanel, ToolActivity, Sources, Composer en Icon
+    invoiceExport.ts JSON-export van het serverresultaat, met lokale reviewmarkering
+    components/      UploadPanel, ChatPanel, AgentPanel, ComparisonPanel, InvoicePanel, ToolActivity, Sources, Composer en Icon
   .env.example
   package.json
 .env.example
@@ -387,7 +519,7 @@ Een geldige bron-ID bewijst dat het fragment is opgehaald, maar niet dat iedere 
 
 Alleen `GEMINI_MODEL` wijzigen schakelt niet naar een andere provider: de huidige adapter en configuratienamen zijn specifiek voor de huidige SDK. De interface en foutmeldingen van de app gebruiken providerneutrale termen.
 
-Beide agents gebruiken `GeminiAgentModel`, met eigen prompts en tools, in dezelfde providermodule. Een andere provider voor de agent vereist ook een vervangende `AgentModel.next_turn`-adapter. De huidige agentinterface gebruikt de conversatietypen uit de Google SDK, inclusief behoud van tool-call-ID's en thought signatures.
+De agents gebruiken `GeminiAgentModel`, met eigen prompts en tools, in dezelfde providermodule. Een andere provider voor de agent vereist ook een vervangende `AgentModel.next_turn`-adapter. De huidige agentinterface gebruikt de conversatietypen uit de Google SDK, inclusief behoud van tool-call-ID's en thought signatures.
 
 ## Refund Review: tools en agent-loop
 
@@ -433,6 +565,10 @@ De backend logt op INFO-niveau alleen de bekende toolnaam en de status via `uvic
 | `COMPARISON_MAX_TOOL_CALLS` | `12` | Toolpogingen per vergelijking; toegestaan van 2 tot 24 |
 | `COMPARISON_TIMEOUT_SECONDS` | `120` | Totale vergelijkingsdeadline; maximaal 300 seconden |
 | `COMPARISON_MAX_CONTEXT_CHARS` | `60000` | Cumulatief budget voor toolresultaten; toegestaan van 4.000 tot 120.000 tekens |
+| `INVOICE_MAX_TOOL_CALLS` | `7` | Toolpogingen per factuuronderzoek; toegestaan van 1 tot 16 |
+| `INVOICE_TIMEOUT_SECONDS` | `120` | Totale factuuragentdeadline; maximaal 300 seconden |
+| `INVOICE_MAX_DOCUMENT_CHARS` | `24000` | Maximale volledige factuurtekst; toegestaan van 1.000 tot 60.000 tekens |
+| `INVOICE_MAX_OUTPUT_TOKENS` | `4096` | Outputlimiet per factuurmodelbeurt en extractie; toegestaan van 1.024 tot 8.192 tokens |
 | `EMBEDDING_MODEL` | `intfloat/multilingual-e5-small` | Lokaal sentence-transformers-model |
 | `EMBEDDING_CACHE_DIR` | `.model_cache` in de hoofdmap | Locatie van modelbestanden; relatieve paden worden vanaf de hoofdmap opgelost |
 | `EMBEDDING_LOCAL_FILES_ONLY` | `false` | Alleen reeds gedownloade modelbestanden gebruiken |
@@ -462,6 +598,7 @@ FastAPI beschrijft de API in OpenAPI. Pydantic valideert backendrequests en resp
 | `GET` | `/api/health` | Geen | `200`: `status`, `configured`, `max_upload_mb`, `max_question_chars` |
 | `POST` | `/api/documents` | `multipart/form-data` met veld `file` | `201`: `document_id`, `filename`, `page_count`, `text_page_count`, `chunk_count` |
 | `POST` | `/api/questions` | JSON met `document_id` en `question` | `200`: `answer`, `sources`, `insufficient_context` |
+| `POST` | `/api/invoices/analyze` | JSON met `document_id` en `instruction` | `200`: extractie, controles, afwijkingen, bronnen, samenvatting, reviewstatus en tools |
 | `POST` | `/api/comparisons/documents` | Multipart met `document_a` en `document_b` | `201`: `comparison_id` en uploadmetadata voor `document_a` en `document_b` |
 | `POST` | `/api/comparisons` | Vergelijkings-ID, beide document-ID's, opdracht en omvang | `200`: rapport, bevindingen, dekking, tools en status |
 | `POST` | `/api/agent` | JSON met `document_id`, `instruction` en optioneel `order_id` | `200`: `answer`, `sources`, `tool_calls`, `status`, `error`, `disclaimer`, `concept_advice` |
@@ -521,13 +658,13 @@ De frontend en backend draaien lokaal op verschillende origins. CORS staat brows
 
 ## Documentlevenscyclus en gegevensverwerking
 
-Er is één actief document voor Document Chat en Refund Review, plus één onafhankelijk vergelijkingspaar per backendproces. Alle browservensters delen deze opslag; er zijn geen gebruikerssessies. Een gewone upload vervangt alleen het chat-/retourdocument. Een vergelijkingsupload maakt alleen het oude paar ongeldig en installeert een nieuw paar wanneer beide bestanden succesvol zijn verwerkt. Ook een mislukte vervanging maakt het vorige document of paar ongeldig. UUID-revisies en locks blokkeren late uploads. Beide agents controleren vóór en na model- en toolstappen of hun documentrevisie nog geldig is.
+Er is één actief document voor Document Chat, Refund Review en Invoice Processing, plus één onafhankelijk vergelijkingspaar per backendproces. Alle browservensters delen deze opslag; er zijn geen gebruikerssessies. Een gewone upload wist de eerdere chat, retouranalyse en factuuranalyse, inclusief de lokale reviewmarkering. Een vergelijkingsupload maakt alleen het oude paar ongeldig en installeert een nieuw paar wanneer beide bestanden succesvol zijn verwerkt. Ook een mislukte vervanging maakt het vorige document of paar ongeldig. UUID-revisies en locks blokkeren late uploads. De agents controleren vóór en na model- en toolstappen of hun documentrevisie nog geldig is.
 
 De frontend wist bij een geldige nieuwe bestandskeuze de chat en negeert late antwoorden van het vorige document. Een wijziging aan Document A of B wist het vergelijkingspaar en rapport direct, annuleert het browserverzoek en negeert late resultaten. Annuleren van een browserverzoek stopt een al gestarte LLM-aanroep niet gegarandeerd. PDF-verwerking en synchrone modelaanroepen draaien buiten de ASGI-eventloop in de threadpool.
 
 PDF-tekst, vragen en toolresultaten worden als onbetrouwbare data meegestuurd, gescheiden van de systeeminstructies. Het model wordt geïnstrueerd om instructies in documenten of toolresultaten niet uit te voeren en alleen gecontroleerde feiten te gebruiken. De allowlist en het ontbreken van schrijftools beperken de uitvoerbare handelingen ook als het model een verkeerde tool aanvraagt. Dit biedt geen volledige garantie tegen inhoudelijk onjuiste of ongewenste modelantwoorden.
 
-De applicatie bewaart documenttekst en de FAISS-index in het geheugen. Modelgewichten blijven in de lokale cache staan. FastAPI/Starlette kan uploads tijdens verwerking tijdelijk bufferen. De browser houdt het oorspronkelijke bestand tijdelijk beschikbaar via een `blob:`-URL voor bronlinks. De vraag en opgehaalde fragmenten gaan naar de ingestelde LLM-provider; in agentmodus worden ook de opdracht en toolresultaten meegestuurd. De meegeleverde orders bevatten uitsluitend fictieve gegevens. Voor externe verwerking gelden de voorwaarden van de provider. Lettertypen worden via Google Fonts geladen als die dienst bereikbaar is.
+De applicatie bewaart documenttekst en de FAISS-index in het geheugen. Modelgewichten blijven in de lokale cache staan. FastAPI/Starlette kan uploads tijdens verwerking tijdelijk bufferen. De browser houdt het oorspronkelijke bestand tijdelijk beschikbaar via een `blob:`-URL voor bronlinks. De vraag en opgehaalde fragmenten gaan naar de ingestelde LLM-provider; in agentmodus worden ook de opdracht en toolresultaten meegestuurd. Voor de gestructureerde factuurextractie wordt de volledige factuurtekst binnen de ingestelde limiet meegestuurd. De meegeleverde orders bevatten uitsluitend fictieve gegevens. Voor externe verwerking gelden de voorwaarden van de provider. Lettertypen worden via Google Fonts geladen als die dienst bereikbaar is.
 
 `.env`, modelcache, gegenereerde PDF's, buildoutput en indexbestanden worden door `.gitignore` uitgesloten.
 
@@ -565,6 +702,10 @@ npm run build
 | `backend/tests/test_agent_gemini.py` | Echte SDK met gemockt HTTP-verkeer: function declarations, call-ID's, thought signatures, bronpagina's en uitgeschakelde autodispatch |
 | `backend/tests/test_comparison.py` | Vergelijkingsinhoud, onzekerheid, documentisolatie, bron-ID's, uploads, budgetten, deadlines en promptinjectie |
 | `backend/tests/test_comparison_gemini.py` | Echte SDK met gemockt HTTP-verkeer voor vergelijkingstools en documentgebonden referenties |
+| `backend/tests/test_invoice.py` | Extractie en bewijs, Decimal-berekeningen, PO-afwijkingen, toolkeuze, limieten, documentwissels en promptinjectie |
+| `backend/tests/test_invoice_gemini.py` | Echte SDK met gemockt HTTP-verkeer: toolselectie, gestructureerde extractie, bronnen en thought signatures |
+| `frontend/src/Invoice.test.tsx` | Upload, factuurresultaten, controles, reviewmarkering, fouten en late resultaten |
+| `frontend/src/invoiceExport.test.ts` | JSON-export met exacte decimale strings, nulls en scheiding van lokale review en financiële goedkeuring |
 | `frontend/src/Comparison.test.tsx` | Twee uploads, omvang, bevindingen, bronlinks per PDF, moduswissels en late/verouderde rapporten |
 | `frontend/src/App.test.tsx` | Upload/chat- en agentinteracties, moduswissels, fouten, bronnen en late antwoorden |
 | `frontend/src/api.test.ts` | Verzoekformaten en API-foutafhandeling |

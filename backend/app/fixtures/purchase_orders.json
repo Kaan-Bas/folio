@@ -1,0 +1,33 @@
+[
+  {
+    "po_number": "PO-DEMO-1001",
+    "supplier_name": "Nexora Demo Supplies B.V.",
+    "currency": "EUR",
+    "order_status": "approved",
+    "line_items": [
+      {"item_code": "CHAIR-01", "description": "Ergonomische bureaustoel", "quantity": "2", "unit_price": "125.00", "line_total": "250.00"},
+      {"item_code": "DOCK-02", "description": "USB-C dockingstation", "quantity": "1", "unit_price": "80.00", "line_total": "80.00"}
+    ],
+    "total_amount": "399.30"
+  },
+  {
+    "po_number": "PO-DEMO-1002",
+    "supplier_name": "Lumen Demo Services B.V.",
+    "currency": "EUR",
+    "order_status": "approved",
+    "line_items": [
+      {"item_code": "SUPPORT-01", "description": "Technische ondersteuning", "quantity": "4", "unit_price": "75.00", "line_total": "300.00"}
+    ],
+    "total_amount": "363.00"
+  },
+  {
+    "po_number": "PO-DEMO-1003",
+    "supplier_name": "Nexora Demo Supplies B.V.",
+    "currency": "EUR",
+    "order_status": "cancelled",
+    "line_items": [
+      {"item_code": "CHAIR-01", "description": "Ergonomische bureaustoel", "quantity": "1", "unit_price": "125.00", "line_total": "125.00"}
+    ],
+    "total_amount": "151.25"
+  }
+]

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ChatPanel } from './components/ChatPanel'
+import { InvoicePanel } from './components/InvoicePanel'
 import { AgentPanel } from './components/AgentPanel'
 import { Icon } from './components/Icon'
 import { UploadPanel } from './components/UploadPanel'
@@ -11,7 +12,7 @@ export default function App() {
   const assistant = useAssistant()
   const comparison = useComparison(assistant.health?.max_upload_mb ?? 10)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
-  const [mode, setMode] = useState<'chat' | 'agent' | 'comparison'>('chat')
+  const [mode, setMode] = useState<'chat' | 'agent' | 'comparison' | 'invoice'>('chat')
 
   useEffect(() => {
     if (!assistant.file) {
@@ -68,6 +69,14 @@ export default function App() {
             >
               Document Comparison
             </button>
+            <button
+              type="button"
+              aria-pressed={mode === 'invoice'}
+              disabled={assistant.busy !== null || comparison.busy !== null}
+              onClick={() => setMode('invoice')}
+            >
+              Invoice Processing
+            </button>
           </div>
         </div>
         {assistant.connectionError && (
@@ -100,6 +109,17 @@ export default function App() {
                 maxQuestionLength={assistant.health?.max_question_chars ?? 2000}
                 error={assistant.error}
                 onAsk={assistant.ask}
+              />
+            ) : mode === 'invoice' ? (
+              <InvoicePanel
+                document={assistant.document}
+                busy={assistant.busy}
+                result={assistant.invoiceResult}
+                error={assistant.error}
+                pdfUrl={pdfUrl}
+                reviewed={assistant.invoiceReviewed}
+                onReviewed={assistant.setInvoiceReviewed}
+                onAnalyze={assistant.processInvoice}
               />
             ) : (
               <AgentPanel

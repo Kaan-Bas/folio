@@ -7,7 +7,7 @@ from app.config import Settings
 from app.embeddings import Embedder
 from app.errors import AppError
 from app.llm import AnswerGenerator
-from app.pdf import extract_pdf
+from app.pdf import PageText, extract_pdf
 from app.retrieval import SearchHit, VectorIndex
 from app.schemas import QuestionRequest, QuestionResponse, Source, UploadResponse
 
@@ -20,6 +20,7 @@ class Document:
     index: VectorIndex
     filename: str
     page_count: int
+    pages: tuple[PageText, ...] = ()
 
 
 class DocumentStore:
@@ -91,6 +92,7 @@ class RAGService:
             index=VectorIndex(chunks, vectors),
             filename=filename,
             page_count=pdf.total_pages,
+            pages=pdf.pages,
         )
 
     @staticmethod

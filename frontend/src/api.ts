@@ -5,6 +5,7 @@ import type {
   ComparisonResponse,
   ComparisonScope,
   HealthResponse,
+  InvoiceResponse,
   UploadedDocument,
 } from './types'
 
@@ -60,6 +61,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export function getHealth(signal?: AbortSignal): Promise<HealthResponse> {
   return request('/api/health', { signal })
+}
+
+export function analyzeInvoice(
+  documentId: string,
+  instruction: string,
+  signal?: AbortSignal,
+): Promise<InvoiceResponse> {
+  return request('/api/invoices/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ document_id: documentId, instruction }),
+    signal,
+  })
 }
 
 export function uploadDocument(file: File, signal?: AbortSignal): Promise<UploadedDocument> {

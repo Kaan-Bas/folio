@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { ApiError, askQuestion, getHealth, investigateReturn, uploadDocument } from './api'
+import {
+  ApiError,
+  analyzeInvoice,
+  askQuestion,
+  getHealth,
+  investigateReturn,
+  uploadDocument,
+} from './api'
 import type {
   AgentResponse,
+  InvoiceResponse,
   AssistantActivity,
   ChatMessage,
   HealthResponse,
@@ -21,6 +29,8 @@ export function useAssistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [busy, setBusy] = useState<AssistantActivity>(null)
   const [agentResult, setAgentResult] = useState<AgentResponse | null>(null)
+  const [invoiceResult, setInvoiceResult] = useState<InvoiceResponse | null>(null)
+  const [invoiceReviewed, setInvoiceReviewed] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const generation = useRef(0)
   const activeRequest = useRef<AbortController | null>(null)
@@ -52,6 +62,8 @@ export function useAssistant() {
     setDocument(null)
     setFile(null)
     setMessages([])
+    setInvoiceResult(null)
+    setInvoiceReviewed(false)
     setAgentResult(null)
     setError(null)
     setBusy('upload')
@@ -104,6 +116,8 @@ export function useAssistant() {
           setFile(null)
           setMessages([])
           setAgentResult(null)
+          setInvoiceResult(null)
+          setInvoiceReviewed(false)
         }
       }
       return false
@@ -136,12 +150,47 @@ export function useAssistant() {
         setDocument(null)
         setFile(null)
         setMessages([])
+        setInvoiceResult(null)
+        setInvoiceReviewed(false)
       }
       return result.status === 'completed'
     } catch (failure) {
       if (generation.current === version && !controller.signal.aborted) {
         setError(messageFrom(failure))
       }
+      return false
+    } finally {
+      if (generation.current === version) setBusy(null)
+    }
+  }
+
+  async function processInvoice(instruction: string): Promise<boolean> {
+    if (!document || busy || !instruction.trim()) return false
+    const version = generation.current
+    const controller = new AbortController()
+    activeRequest.current = controller
+    setInvoiceResult(null)
+    setInvoiceReviewed(false)
+    setBusy('invoice')
+    setError(null)
+    try {
+      const result = await analyzeInvoice(
+        document.document_id,
+        instruction.trim(),
+        controller.signal,
+      )
+      if (generation.current !== version) return false
+      setInvoiceResult(result)
+      if (result.error && ['no_document', 'document_replaced'].includes(result.error.code)) {
+        setDocument(null)
+        setFile(null)
+        setMessages([])
+        setAgentResult(null)
+      }
+      return result.review_status !== 'error'
+    } catch (failure) {
+      if (generation.current === version && !controller.signal.aborted)
+        setError(messageFrom(failure))
       return false
     } finally {
       if (generation.current === version) setBusy(null)
@@ -160,5 +209,9 @@ export function useAssistant() {
     ask,
     agentResult,
     investigate,
+    invoiceResult,
+    invoiceReviewed,
+    setInvoiceReviewed,
+    processInvoice,
   }
 }

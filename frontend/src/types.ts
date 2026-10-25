@@ -34,7 +34,7 @@ export interface ChatMessage {
   insufficientContext?: boolean
 }
 
-export type AssistantActivity = 'upload' | 'answer' | 'agent' | null
+export type AssistantActivity = 'upload' | 'answer' | 'agent' | 'invoice' | null
 
 export interface AgentToolCall {
   sequence: number
@@ -99,4 +99,50 @@ export interface ComparisonResponse {
   tool_calls: AgentToolCall[]
   tool_call_limit: number
   error: { code: string; message: string } | null
+}
+
+export interface InvoiceLine {
+  item_code: string | null
+  description: string | null
+  quantity: string | null
+  unit_price: string | null
+  line_total: string | null
+}
+
+export interface InvoiceData {
+  invoice_number: string | null
+  supplier_name: string | null
+  invoice_date: string | null
+  due_date: string | null
+  purchase_order_number: string | null
+  currency: string | null
+  line_items: InvoiceLine[]
+  subtotal: string | null
+  tax_rate: string | null
+  tax_amount: string | null
+  total_amount: string | null
+}
+
+export interface InvoiceCheck {
+  code: string
+  stage: 'extraction' | 'totals' | 'purchase_order'
+  status: 'passed' | 'failed' | 'missing'
+  message: string
+  expected: string | null
+  actual: string | null
+}
+
+export interface InvoiceResponse {
+  document_id: string
+  filename: string
+  invoice_data: InvoiceData | null
+  validations: InvoiceCheck[]
+  discrepancies: InvoiceCheck[]
+  sources: Source[]
+  summary: string
+  review_status: 'validated' | 'discrepancy_found' | 'insufficient_data' | 'error'
+  tool_calls: AgentToolCall[]
+  tool_call_limit: number
+  error: { code: string; message: string } | null
+  disclaimer: string
 }
