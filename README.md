@@ -497,6 +497,7 @@ backend/
     gemini.py        Huidige LLM-adapter, SDK-aanroepen en foutvertaling
     agent.py         Refund Review-service en instructies
     agent_loop.py    Gedeelde begrensde tool-loop voor de agents
+    chat_retrieval.py Document Chat: gecombineerde rangschikking en naburige bronfragmenten
     comparison.py    Vergelijkingsservice en resultaat-/bewijscontrole
     comparison_store.py   Afzonderlijk, atomair vergelijkingspaar
     comparison_tools.py   Documentoverzicht, zoeken en passageopvraag
@@ -592,11 +593,13 @@ Met een geactiveerde Python-omgeving werkt ook `python backend/scripts/download_
 
 FAISS bewaart de documentvectoren in een `IndexFlatIP`. Zowel index- als vraagvectoren worden naar lengte 1 genormaliseerd, waardoor hun inproduct overeenkomt met cosinussimilariteit. De index zoekt exact en heeft geen trainingsstap nodig.
 
-Standaard worden maximaal vier fragmenten met een score van ten minste `0.2` geselecteerd. Deze drempel is een configureerbare heuristiek; een score is geen betrouwbaarheidspercentage. De chunklijst bewaart de tekst en metadata waarmee de gevonden vectorposities worden terugvertaald naar bronnen.
+De gedeelde zoekfunctie selecteert standaard maximaal vier fragmenten met een score van ten minste `0.2`. Deze drempel is een configureerbare heuristiek; een score is geen betrouwbaarheidspercentage. De chunklijst bewaart de tekst en metadata waarmee de gevonden vectorposities worden terugvertaald naar bronnen.
+
+Document Chat combineert deze semantische rangschikking met lokale woordoverlap via BM25 en reciprocal rank fusion. Letterlijke zoektermen kunnen daardoor een relevante passage terugvinden die buiten de hoogste vectorscores valt. Aan de geselecteerde ankerfragmenten worden aangrenzende chunks op dezelfde pagina toegevoegd, zodat een voorwaarde die bij een chunkgrens is afgebroken weer beschikbaar is. Algemene vragen zonder passende letterlijke zoekterm krijgen ook de openingspassage. Voor een samenvatting worden alle chunks meegenomen als het document binnen de contextlimiet past. Bij grotere documenten wordt de contextselectie begrensd en krijgt de opening voorrang; een volledige samenvatting van iedere pagina is dan niet gegarandeerd. De context blijft beperkt tot 24.000 teksttekens; chunks worden niet doormidden geknipt. De originele chunk-ID's, cosinusscores en fysieke paginanummers blijven behouden. Dit verandert uitsluitend de contextselectie in Document Chat; de zoekfuncties van de agents, embeddings en FAISS-index blijven gelijk.
 
 ### 4. LLM en antwoordvalidatie
 
-In Document Chat gaan alleen de huidige vraag en opgehaalde fragmenten vanuit de backend naar de LLM. Het volledige document en eerdere chatberichten worden niet meegestuurd. Zonder zoekresultaten retourneert de backend direct een vast antwoord over onvoldoende informatie, zonder LLM-aanroep. In Refund Review bepaalt de LLM eerst welke tools nodig zijn; `search_policy` gebruikt vervolgens exact dezelfde `RAGService.search`-functie en FAISS-index.
+In Document Chat gaan alleen de huidige vraag en de geselecteerde context vanuit de backend naar de LLM. Eerdere chatberichten worden niet meegestuurd. Zonder semantische of letterlijke zoekresultaten retourneert de backend direct een vast antwoord over onvoldoende informatie, zonder LLM-aanroep. Ook bij gevonden passages moet de LLM melden wanneer het gevraagde feit ontbreekt. Refund Review blijft voor `search_policy` de bestaande `RAGService.search`-functie en FAISS-index gebruiken.
 
 De huidige adapter gebruikt de officiële `google-genai`-SDK, een afzonderlijke systeeminstructie en gestructureerde JSON-output met `answer`, `cited_chunk_ids` en `sufficient_context`. Pydantic valideert de antwoordstructuur.
 
@@ -788,6 +791,7 @@ npm run build
 | `backend/tests/test_pdf_chunking.py` | PDF-extractie, foutgevallen, chunkgrenzen, overlap en paginanummers |
 | `backend/tests/test_embeddings.py` | Lokale modeladapter, prefixes, hergebruik van het model en laad-/inferentiefouten |
 | `backend/tests/test_retrieval.py` | Echte FAISS-retrieval, normalisatie, filters en ongeldige vectoren |
+| `backend/tests/test_chat_retrieval.py` | Chatselectie bij misleidende voetteksten, afgebroken voorwaarden, documentoverzichten, contextbudget, bronmetadata en behoud van de gedeelde agentzoekfunctie |
 | `backend/tests/test_config.py` | Environment variables en configuratievalidatie |
 | `backend/tests/test_providers.py` | LLM-invoer, gestructureerde antwoorden en veilige foutafhandeling |
 | `backend/tests/test_api.py` | Upload/vraag-endpoints, bronnen, CORS en documentwissels |

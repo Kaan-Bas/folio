@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from threading import Lock
 from uuid import UUID, uuid4
 
+from app.chat_retrieval import select_chat_context
 from app.chunking import chunk_pages
 from app.config import Settings
 from app.embeddings import Embedder
@@ -11,7 +12,10 @@ from app.pdf import PageText, extract_pdf
 from app.retrieval import SearchHit, VectorIndex
 from app.schemas import QuestionRequest, QuestionResponse, Source, UploadResponse
 
-INSUFFICIENT_CONTEXT = "Ik kan deze vraag niet beantwoorden op basis van de beschikbare PDF-fragmenten. Er is onvoldoende informatie in de gevonden context."
+INSUFFICIENT_CONTEXT = (
+    "Ik kan deze vraag niet beantwoorden op basis van de beschikbare PDF-fragmenten. "
+    "Er is onvoldoende informatie in de gevonden context."
+)
 
 
 @dataclass(frozen=True)
@@ -125,7 +129,18 @@ class RAGService:
 
     def ask(self, request: QuestionRequest) -> QuestionResponse:
         document = self.store.get(request.document_id)
-        hits = self.search(request.document_id, request.question)
+        vector = self.embedder.embed([request.question], is_query=True)
+        # Rank candidates only for Document Chat; shared agent search stays untouched.
+        candidates = document.index.search(
+            vector, top_k=len(document.index.chunks), min_similarity=-1.0
+        )
+        self.store.get(document.id)
+        hits = select_chat_context(
+            request.question,
+            candidates,
+            top_k=self.settings.top_k,
+            min_similarity=self.settings.min_similarity,
+        )
         fallback = QuestionResponse(
             answer=INSUFFICIENT_CONTEXT, sources=[], insufficient_context=True
         )
