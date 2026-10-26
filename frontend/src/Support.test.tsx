@@ -76,6 +76,8 @@ describe('Customer Support Agent', () => {
     await fill(user)
     await user.click(screen.getByRole('button', { name: 'Analyseer ticket' }))
     expect(await screen.findByText(supportResult.analysis!.short_summary)).toBeVisible()
+    const conclusion = screen.getByRole('region', { name: 'Conclusie: Ticketanalyse' })
+    expect(conclusion.parentElement?.firstElementChild).toBe(conclusion)
     expect(api.analyzeSupport).toHaveBeenCalledWith(
       {
         customer_message: 'Ondersteunt LAP-204 twee externe monitoren?',
@@ -85,6 +87,7 @@ describe('Customer Support Agent', () => {
       },
       expect.any(AbortSignal),
     )
+    await user.click(screen.getByText('Uitgevoerde tools'))
     expect(screen.getByText('Fictieve productinformatie opzoeken')).toBeVisible()
     expect(screen.queryByText('Fictieve bestelling opzoeken')).not.toBeInTheDocument()
     expect(screen.getByText('Controleer aansluitingen en kabels.')).toBeVisible()
@@ -173,7 +176,9 @@ describe('Customer Support Agent', () => {
     await upload()
     await fill(user)
     await user.click(screen.getByRole('button', { name: 'Analyseer ticket' }))
-    await user.click(await screen.findByText('Pagina 3'))
+    await screen.findByText(supportResult.analysis!.short_summary)
+    await user.click(screen.getByText('kennisbank.pdf', { selector: 'span' }))
+    await user.click(screen.getByText('Pagina 3'))
     expect(screen.getByRole('link', { name: /Open pagina 3/ })).toHaveAttribute(
       'href',
       'blob:support-pdf#page=3',
@@ -254,6 +259,7 @@ describe('Customer Support Agent', () => {
     await fill(user)
     await user.click(screen.getByRole('button', { name: 'Analyseer ticket' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('gebruikslimiet')
+    await user.click(screen.getByText('Uitgevoerde tools'))
     expect(screen.getByText('Fictieve productinformatie opzoeken')).toBeVisible()
     expect(
       screen.queryByRole('button', { name: 'Kopieer conceptantwoord' }),

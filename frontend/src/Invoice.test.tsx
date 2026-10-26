@@ -106,16 +106,42 @@ async function open() {
 }
 
 describe('Invoice Processing', () => {
+  it('places collapsible checks below the sources and lets users toggle checks and tools', async () => {
+    const user = await open()
+    await upload()
+    await user.click(screen.getByRole('button', { name: 'Analyseer factuur' }))
+    await screen.findByText(result.summary)
+    const checksToggle = screen.getByText('Uitgevoerde controles')
+    const toolsToggle = screen.getByText('Uitgevoerde tools')
+    const sources = screen.getByText('Bronnen uit de factuur')
+    expect(
+      sources.compareDocumentPosition(checksToggle) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(screen.getByText('Totaalcontrole uitgevoerd.')).not.toBeVisible()
+    expect(screen.getByText('Factuurgegevens extraheren')).not.toBeVisible()
+    await user.click(checksToggle)
+    expect(screen.getByText('Totaalcontrole uitgevoerd.')).toBeVisible()
+    await user.click(checksToggle)
+    expect(screen.getByText('Totaalcontrole uitgevoerd.')).not.toBeVisible()
+    await user.click(toolsToggle)
+    expect(screen.getByText('Factuurgegevens extraheren')).toBeVisible()
+    await user.click(toolsToggle)
+    expect(screen.getByText('Factuurgegevens extraheren')).not.toBeVisible()
+  })
+
   it('uses the existing upload and shows extracted fields, checks, sources and genuine activity', async () => {
     const user = await open()
     expect(screen.getByRole('button', { name: 'Analyseer factuur' })).toBeDisabled()
     await upload()
     await user.click(screen.getByRole('button', { name: 'Analyseer factuur' }))
     expect(await screen.findByText(result.summary)).toBeInTheDocument()
+    const conclusion = screen.getByRole('region', { name: 'Conclusie: Factuuronderzoek' })
+    expect(conclusion.parentElement?.firstElementChild).toBe(conclusion)
     expect(screen.getByText('INV-DEMO-001')).toBeInTheDocument()
     expect(screen.getByText('Totaalcontrole uitgevoerd.')).toBeInTheDocument()
     expect(screen.getByText('Factuurgegevens extraheren')).toBeInTheDocument()
     expect(screen.queryByText('Fictieve inkooporder ophalen')).not.toBeInTheDocument()
+    await user.click(screen.getByText('Bronnen uit de factuur'))
     await user.click(screen.getByText('Pagina 2'))
     expect(screen.getByRole('link', { name: /Open pagina 2/ })).toHaveAttribute(
       'href',

@@ -5,6 +5,7 @@ import { Icon } from './Icon'
 import { Sources } from './Sources'
 import { SupportReview } from './SupportReview'
 import { ToolActivity } from './ToolActivity'
+import { AgentConclusion } from './AgentConclusion'
 
 const statuses = {
   completed: 'Conceptanalyse gereed',
@@ -75,6 +76,24 @@ export function SupportPanel({
         <span className="context-label">CONCEPTADVIES</span>
       </div>
       <div className="agent-content support-content">
+        {result && (
+          <AgentConclusion
+            title="Ticketanalyse"
+            status={statuses[result.status]}
+            summary={
+              analysis?.short_summary ??
+              result.error?.message ??
+              'De ticketanalyse kon niet worden afgerond.'
+            }
+            tone={
+              result.status === 'error'
+                ? 'error'
+                : result.status === 'completed'
+                  ? 'success'
+                  : 'warning'
+            }
+          />
+        )}
         <div className="agent-intro">
           <h2>
             Van klantvraag naar conceptantwoord<span>.</span>
@@ -170,18 +189,9 @@ export function SupportPanel({
         {result && (
           <>
             <section className="agent-result" aria-label="Ticketanalyse">
-              <div className="agent-result-heading">
-                <h3>Ticketanalyse</h3>
-                <span className="insufficient-badge">{statuses[result.status]}</span>
-              </div>
-              {result.error && (
-                <p role="alert" className="error-banner">
-                  {result.error.message}
-                </p>
-              )}
+              <h3>Onderbouwing en beoordeling</h3>
               {analysis && (
                 <>
-                  <p className="message-text">{analysis.short_summary}</p>
                   <dl className="support-facts">
                     <div>
                       <dt>Categorievoorstel</dt>
@@ -248,6 +258,7 @@ export function SupportPanel({
                 sources={result.sources}
                 pdfUrl={pdfUrl}
                 documentName={result.sources[0]?.filename ?? 'DOCUMENTBRONNEN'}
+                collapsible
               />
               {result.data_references.length > 0 && (
                 <section className="support-references" aria-label="Geraadpleegde demogegevens">

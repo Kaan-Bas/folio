@@ -210,6 +210,8 @@ describe('PDF assistant', () => {
     await user.type(screen.getByLabelText(/Fictieve order-ID/), 'demo-1001')
     await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
     expect(await screen.findByText(agentAdvice.answer)).toBeInTheDocument()
+    const conclusion = screen.getByRole('region', { name: 'Conclusie: Conceptadvies' })
+    expect(conclusion.parentElement?.firstElementChild).toBe(conclusion)
     expect(api.investigateReturn).toHaveBeenCalledWith(
       'first-id',
       expect.stringContaining('retourbeleid'),
@@ -219,6 +221,7 @@ describe('PDF assistant', () => {
     expect(screen.getByText('Retourbeleid doorzoeken')).toBeInTheDocument()
     expect(screen.getByText('Geslaagd')).toBeInTheDocument()
     expect(screen.getByText(agentAdvice.disclaimer)).toBeInTheDocument()
+    await user.click(screen.getByText('GEBRUIKTE BRONNEN'))
     await user.click(screen.getByText('Pagina 3'))
     expect(screen.getByRole('link', { name: /Open pagina 3/ })).toHaveAttribute(
       'href',

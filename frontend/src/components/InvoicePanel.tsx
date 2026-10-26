@@ -4,6 +4,7 @@ import type { AssistantActivity, InvoiceResponse, UploadedDocument } from '../ty
 import { Sources } from './Sources'
 import { ToolActivity } from './ToolActivity'
 import { Icon } from './Icon'
+import { AgentConclusion } from './AgentConclusion'
 
 interface Props {
   document: UploadedDocument | null
@@ -53,6 +54,20 @@ export function InvoicePanel({
         <span className="context-label">ALLEEN LEZEN</span>
       </div>
       <div className="agent-content invoice-content">
+        {result && (
+          <AgentConclusion
+            title="Factuuronderzoek"
+            status={reviewLabels[result.review_status]}
+            summary={result.summary}
+            tone={
+              result.review_status === 'error'
+                ? 'error'
+                : result.review_status === 'validated'
+                  ? 'success'
+                  : 'warning'
+            }
+          />
+        )}
         <div className="agent-intro">
           <h2>
             Van factuur naar controle<span>.</span>
@@ -112,18 +127,7 @@ export function InvoicePanel({
         {result && (
           <>
             <section className="agent-result" aria-label="Factuurresultaat">
-              <div className="agent-result-heading">
-                <h3>Factuuronderzoek</h3>
-                <span className={`invoice-status ${result.review_status}`}>
-                  {reviewLabels[result.review_status]}
-                </span>
-              </div>
-              <p
-                className="message-text"
-                role={result.review_status === 'error' ? 'alert' : undefined}
-              >
-                {result.summary}
-              </p>
+              <h3>Factuurgegevens en controles</h3>
               {data && (
                 <>
                   <dl className="invoice-fields">
@@ -182,39 +186,49 @@ export function InvoicePanel({
                   </dl>
                 </>
               )}
-              <section className="invoice-checks" aria-label="Validatieresultaten">
-                <h3>Uitgevoerde controles</h3>
-                {result.validations.length ? (
-                  <ul>
-                    {result.validations.map((check) => (
-                      <li key={check.code}>
-                        <div>
-                          <strong>{check.message}</strong>
-                          <span
-                            className={`tool-status ${check.status === 'passed' ? 'success' : 'error'}`}
-                          >
-                            {checkLabels[check.status]}
-                          </span>
-                        </div>
-                        {(check.expected !== null || check.actual !== null) && (
-                          <p>
-                            Verwacht: {show(check.expected)} · Aangetroffen: {show(check.actual)}
-                          </p>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="agent-field-hint">
-                    Er zijn nog geen reken- of inkoopordercontroles uitgevoerd.
-                  </p>
-                )}
-              </section>
               <Sources
                 sources={result.sources}
                 pdfUrl={pdfUrl}
-                documentName="BRONNEN UIT DE FACTUUR"
+                documentName="Bronnen uit de factuur"
+                collapsible
               />
+              <section className="invoice-checks" aria-label="Validatieresultaten">
+                <details className="agent-disclosure">
+                  <summary>
+                    <span>Uitgevoerde controles</span>
+                    <span className="disclosure-count">{result.validations.length}</span>
+                    <Icon name="chevron" size={16} />
+                  </summary>
+                  <div className="agent-disclosure-content">
+                    {result.validations.length ? (
+                      <ul>
+                        {result.validations.map((check) => (
+                          <li key={check.code}>
+                            <div>
+                              <strong>{check.message}</strong>
+                              <span
+                                className={`tool-status ${check.status === 'passed' ? 'success' : 'error'}`}
+                              >
+                                {checkLabels[check.status]}
+                              </span>
+                            </div>
+                            {(check.expected !== null || check.actual !== null) && (
+                              <p>
+                                Verwacht: {show(check.expected)} · Aangetroffen:{' '}
+                                {show(check.actual)}
+                              </p>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="agent-field-hint">
+                        Er zijn nog geen reken- of inkoopordercontroles uitgevoerd.
+                      </p>
+                    )}
+                  </div>
+                </details>
+              </section>
             </section>
             <ToolActivity calls={result.tool_calls} maxCalls={result.tool_call_limit} />
             <div className="invoice-review">

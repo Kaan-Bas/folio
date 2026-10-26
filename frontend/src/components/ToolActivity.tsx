@@ -1,4 +1,5 @@
 import type { AgentToolCall } from '../types'
+import { Icon } from './Icon'
 
 const labels: Record<string, string> = {
   search_policy: 'Retourbeleid doorzoeken',
@@ -32,30 +33,35 @@ export function ToolActivity({
 }) {
   return (
     <section className="agent-tools" aria-label="Uitgevoerde tools">
-      <h3>
-        Uitgevoerde tools{' '}
-        <span>
-          {calls.length} / {maxCalls}
-        </span>
-      </h3>
-      {calls.length ? (
-        <ol>
-          {calls.map((call) => (
-            <li key={call.sequence}>
-              <div>
-                <strong>
-                  {labels[call.name] ?? 'Tool'}
-                  {call.document_label ? ` · Document ${call.document_label}` : ''}
-                </strong>
-                <span className={`tool-status ${call.status}`}>{statuses[call.status]}</span>
-              </div>
-              <p>{call.message}</p>
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <p className="agent-field-hint">Er zijn geen tools uitgevoerd.</p>
-      )}
+      <details className="agent-disclosure">
+        <summary>
+          <span>Uitgevoerde tools</span>
+          <span className="disclosure-count">
+            {calls.length} / {maxCalls}
+          </span>
+          <Icon name="chevron" size={16} />
+        </summary>
+        <div className="agent-disclosure-content">
+          {calls.length ? (
+            <ol>
+              {calls.map((call) => (
+                <li key={call.sequence}>
+                  <div>
+                    <strong>
+                      {labels[call.name] ?? 'Tool'}
+                      {call.document_label ? ` · Document ${call.document_label}` : ''}
+                    </strong>
+                    <span className={`tool-status ${call.status}`}>{statuses[call.status]}</span>
+                  </div>
+                  <p>{call.message}</p>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="agent-field-hint">Er zijn geen tools uitgevoerd.</p>
+          )}
+        </div>
+      </details>
     </section>
   )
 }

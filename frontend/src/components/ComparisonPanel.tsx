@@ -3,6 +3,7 @@ import type { useComparison } from '../useComparison'
 import { Icon } from './Icon'
 import { Sources } from './Sources'
 import { ToolActivity } from './ToolActivity'
+import { AgentConclusion } from './AgentConclusion'
 
 const changeLabels: Record<ChangeType, string> = {
   modified: 'Gewijzigd',
@@ -109,6 +110,20 @@ export function ComparisonPanel({ model: c }: { model: ReturnType<typeof useComp
           <span className="context-label">DOCUMENT COMPARISON</span>
         </div>
         <div className="agent-content comparison-content">
+          {c.result && (
+            <AgentConclusion
+              title="Vergelijkingsrapport"
+              status={statuses[c.result.status]}
+              summary={c.result.summary}
+              tone={
+                c.result.status === 'error'
+                  ? 'error'
+                  : c.result.status === 'completed'
+                    ? 'success'
+                    : 'warning'
+              }
+            />
+          )}
           {c.error && (
             <p role="alert" className="error-banner agent-error">
               {c.error}
@@ -144,18 +159,7 @@ export function ComparisonPanel({ model: c }: { model: ReturnType<typeof useComp
           {c.result && (
             <>
               <section aria-label="Vergelijkingsrapport" className="comparison-report">
-                <div className="agent-result-heading">
-                  <h2>Vergelijkingsrapport</h2>
-                  <span className={`agent-status ${c.result.status}`}>
-                    {statuses[c.result.status]}
-                  </span>
-                </div>
-                <p
-                  className="message-text"
-                  role={c.result.status === 'error' ? 'alert' : undefined}
-                >
-                  {c.result.summary}
-                </p>
+                <h3>Bevindingen en bronverwijzingen</h3>
                 <div className="comparison-coverage">
                   <strong>Onderzochte documentinhoud</strong>
                   <p>{c.result.coverage_note}</p>
@@ -183,6 +187,7 @@ export function ComparisonPanel({ model: c }: { model: ReturnType<typeof useComp
                           sources={finding.sources_a}
                           pdfUrl={c.pdfUrls[0]}
                           documentName="Bronnen Document A"
+                          collapsible
                         />
                       </div>
                       <div>
@@ -192,6 +197,7 @@ export function ComparisonPanel({ model: c }: { model: ReturnType<typeof useComp
                           sources={finding.sources_b}
                           pdfUrl={c.pdfUrls[1]}
                           documentName="Bronnen Document B"
+                          collapsible
                         />
                       </div>
                     </div>

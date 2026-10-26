@@ -3,6 +3,7 @@ import type { AgentResponse, AssistantActivity, UploadedDocument } from '../type
 import { Icon } from './Icon'
 import { Sources } from './Sources'
 import { ToolActivity } from './ToolActivity'
+import { AgentConclusion } from './AgentConclusion'
 
 interface Props {
   document: UploadedDocument | null
@@ -53,6 +54,20 @@ export function AgentPanel({ document, busy, result, error, pdfUrl, onRun }: Pro
         <span className="context-label">ALLEEN LEZEN</span>
       </div>
       <div className="agent-content">
+        {result && (
+          <AgentConclusion
+            title="Conceptadvies"
+            status={resultStatuses[result.status]}
+            summary={result.answer}
+            tone={
+              result.status === 'error'
+                ? 'error'
+                : result.status === 'completed'
+                  ? 'success'
+                  : 'warning'
+            }
+          />
+        )}
         <div className="agent-intro">
           <h2>
             Onderzoek een retourverzoek<span>.</span>
@@ -131,18 +146,11 @@ export function AgentPanel({ document, busy, result, error, pdfUrl, onRun }: Pro
         )}
         {result && (
           <>
-            <section className="agent-result" aria-label="Conceptadvies">
-              <div className="agent-result-heading">
-                <h3>Conceptadvies</h3>
-                <span className={`agent-status ${result.status}`}>
-                  {resultStatuses[result.status]}
-                </span>
-              </div>
-              <p className="message-text" role={result.status === 'error' ? 'alert' : undefined}>
-                {result.answer}
-              </p>
-              <Sources sources={result.sources} pdfUrl={pdfUrl} />
-            </section>
+            {result.sources.length > 0 && (
+              <section className="agent-result" aria-label="Bronnen bij het conceptadvies">
+                <Sources sources={result.sources} pdfUrl={pdfUrl} collapsible />
+              </section>
+            )}
             <ToolActivity calls={result.tool_calls} />
           </>
         )}
