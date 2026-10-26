@@ -53,7 +53,6 @@ export function ChatPanel({
             <div className="empty-symbol">
               <Icon name="sparkle" size={31} />
             </div>
-            <div className="eyebrow">MINDER ZOEKEN, MEER BEGRIJPEN</div>
             <h2>
               {document
                 ? 'Je document, uitgelegd.'
