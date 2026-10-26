@@ -26,50 +26,55 @@ export function AppNavigation({ route }: { route: AppRoute }) {
       <div id="navigation-links" className="navigation-links" data-open={open}>
         <span className="navigation-eyebrow">WERKRUIMTE</span>
         <nav aria-label="Hoofdnavigatie" onClick={() => setOpen(false)}>
-          <a
-            href={routeHref({ view: 'chat' })}
-            className="navigation-link"
-            aria-current={route.view === 'chat' ? 'page' : undefined}
-            data-active={route.view === 'chat'}
-          >
-            <Icon name="chat" size={19} />
-            Document Chat
-          </a>
-          <a
-            href={routeHref({ view: 'library' })}
-            className="navigation-link"
-            aria-current={
-              route.view === 'chat'
-                ? undefined
-                : route.view === 'library' && !route.category
-                  ? 'page'
-                  : 'location'
-            }
-            data-active={route.view !== 'chat'}
-          >
-            <Icon name="grid" size={19} />
-            AI Agents
-          </a>
-        </nav>
-        <span className="navigation-eyebrow category-label">CATEGORIEËN</span>
-        <nav aria-label="Agentcategorieën" onClick={() => setOpen(false)}>
-          {groupAgents().map((category) => (
-            <a
-              key={category.id}
-              href={routeHref({ view: 'library', category: category.id })}
-              className="navigation-link category-link"
-              aria-current={
-                activeCategory === category.id
-                  ? route.view === 'agent'
-                    ? 'location'
-                    : 'page'
-                  : undefined
-              }
-            >
-              <Icon name={category.icon} size={17} />
-              <span>{category.name}</span>
-            </a>
-          ))}
+          <ul className="navigation-list" aria-label="Hoofdonderdelen">
+            <li>
+              <a
+                href={routeHref({ view: 'chat' })}
+                className="navigation-link"
+                aria-current={route.view === 'chat' ? 'page' : undefined}
+                data-active={route.view === 'chat'}
+              >
+                <Icon name="chat" size={19} />
+                Document Chat
+              </a>
+            </li>
+            <li>
+              <a
+                href={routeHref({ view: 'library' })}
+                className="navigation-link"
+                aria-current={
+                  route.view === 'chat'
+                    ? undefined
+                    : route.view === 'library' && !route.category
+                      ? 'page'
+                      : 'location'
+                }
+                data-active={route.view !== 'chat'}
+              >
+                <Icon name="grid" size={19} />
+                AI Agents
+              </a>
+              <nav className="agent-subnavigation" aria-label="Agentcategorieën">
+                {groupAgents().map((category) => (
+                  <a
+                    key={category.id}
+                    href={routeHref({ view: 'library', category: category.id })}
+                    className="navigation-link category-link"
+                    aria-current={
+                      activeCategory === category.id
+                        ? route.view === 'agent'
+                          ? 'location'
+                          : 'page'
+                        : undefined
+                    }
+                  >
+                    <Icon name={category.icon} size={17} />
+                    <span>{category.name}</span>
+                  </a>
+                ))}
+              </nav>
+            </li>
+          </ul>
         </nav>
         <div className="navigation-note">
           <Icon name="book" size={18} />

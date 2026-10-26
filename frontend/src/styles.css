@@ -201,11 +201,23 @@ main {
   background: var(--green);
   color: #fff;
 }
-.category-label {
-  margin-top: 34px;
+.navigation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.agent-subnavigation {
+  margin: 8px 0 0 21px;
+  padding-left: 9px;
+  border-left: 1px solid #d5ddcc;
 }
 .category-link {
-  font-size: 11px;
+  gap: 8px;
+  padding: 9px 8px;
+  font-size: 10px;
   line-height: 1.65;
 }
 .category-link[aria-current] {
@@ -1799,9 +1811,6 @@ h1 > span {
   }
   .navigation-links[data-open='true'] {
     display: block;
-  }
-  .category-label {
-    margin-top: 22px;
   }
   .navigation-note {
     display: none;

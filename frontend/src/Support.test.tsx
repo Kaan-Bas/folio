@@ -66,7 +66,7 @@ describe('Customer Support Agent', () => {
     expect(within(category).getByRole('link', { name: 'Customer Support Agent' })).toBeVisible()
     expect(within(category).getByRole('link', { name: 'Refund Review Agent' })).toBeVisible()
     expect(
-      within(screen.getByRole('navigation', { name: 'Hoofdnavigatie' })).getAllByRole('link'),
+      within(screen.getByRole('list', { name: 'Hoofdonderdelen' })).getAllByRole('listitem'),
     ).toHaveLength(2)
   })
 
