@@ -156,22 +156,13 @@ main {
   padding: 34px 32px 22px;
 }
 .app-navigation {
-  padding: 30px 16px;
+  padding: 24px 16px;
   border-right: 1px solid var(--border);
   background: #f0f1e9;
 }
 .navigation-links {
   position: sticky;
   top: 24px;
-}
-.navigation-eyebrow {
-  display: block;
-  padding: 0 12px;
-  margin-bottom: 13px;
-  color: #737e6c;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 1.6px;
 }
 .navigation-links nav {
   display: flex;
@@ -204,13 +195,13 @@ main {
 .navigation-list {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 8px;
   list-style: none;
   padding: 0;
   margin: 0;
 }
 .agent-subnavigation {
-  margin: 8px 0 0 21px;
+  margin: 10px 0 0 21px;
   padding-left: 9px;
   border-left: 1px solid #d5ddcc;
 }
@@ -223,19 +214,6 @@ main {
 .category-link[aria-current] {
   background: #e1e8d8;
   color: #335b48;
-}
-.navigation-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  border-top: 1px solid #dde2d5;
-  margin: 36px 12px 0;
-  padding-top: 20px;
-  color: #73816a;
-}
-.navigation-note p {
-  font-size: 10px;
-  line-height: 1.9;
 }
 .mobile-navigation-bar {
   display: none;
@@ -254,13 +232,6 @@ main {
   font-weight: 600;
   letter-spacing: 1.8px;
   margin-bottom: 10px;
-}
-.page-description {
-  max-width: 620px;
-  margin-top: 12px;
-  font-size: 12px;
-  line-height: 1.9;
-  color: #737c6d;
 }
 .agent-breadcrumb {
   display: flex;
@@ -1807,13 +1778,10 @@ h1 > span {
   .navigation-links {
     display: none;
     position: static;
-    padding: 24px 0 8px;
+    padding: 16px 0 4px;
   }
   .navigation-links[data-open='true'] {
     display: block;
-  }
-  .navigation-note {
-    display: none;
   }
   .app-main {
     padding: 28px 3% 20px;

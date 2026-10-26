@@ -99,12 +99,6 @@ export default function App() {
                     : 'Ga in gesprek met je PDF'}
                 <span>.</span>
               </h1>
-              {route.view === 'library' && (
-                <p className="page-description">
-                  Ontdek gespecialiseerde AI-agents voor documentanalyse, workflows en
-                  bedrijfsprocessen.
-                </p>
-              )}
             </div>
             {activeAgent && (
               <div className="agent-switcher">
@@ -207,7 +201,6 @@ export default function App() {
           </div>
           <footer className="app-footer">
             <span>Gebouwd om informatie begrijpelijk te maken.</span>
-            <span>Upload → zoeken → onderbouwd antwoord</span>
           </footer>
         </main>
       </div>

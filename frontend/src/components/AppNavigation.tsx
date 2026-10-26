@@ -24,7 +24,6 @@ export function AppNavigation({ route }: { route: AppRoute }) {
         </button>
       </div>
       <div id="navigation-links" className="navigation-links" data-open={open}>
-        <span className="navigation-eyebrow">WERKRUIMTE</span>
         <nav aria-label="Hoofdnavigatie" onClick={() => setOpen(false)}>
           <ul className="navigation-list" aria-label="Hoofdonderdelen">
             <li>
@@ -76,10 +75,6 @@ export function AppNavigation({ route }: { route: AppRoute }) {
             </li>
           </ul>
         </nav>
-        <div className="navigation-note">
-          <Icon name="book" size={18} />
-          <p>Van document naar inzicht. Met de bron erbij.</p>
-        </div>
       </div>
     </aside>
   )
