@@ -7,6 +7,8 @@ import type {
   HealthResponse,
   InvoiceResponse,
   UploadedDocument,
+  SupportRequest,
+  SupportResponse,
 } from './types'
 
 // The only frontend environment setting is a public URL, never an API key.
@@ -61,6 +63,18 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export function getHealth(signal?: AbortSignal): Promise<HealthResponse> {
   return request('/api/health', { signal })
+}
+
+export function analyzeSupport(
+  body: SupportRequest,
+  signal?: AbortSignal,
+): Promise<SupportResponse> {
+  return request('/api/support/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal,
+  })
 }
 
 export function analyzeInvoice(

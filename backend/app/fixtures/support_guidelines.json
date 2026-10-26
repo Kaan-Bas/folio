@@ -1,0 +1,12 @@
+{
+  "id":"nexora-support-v1",
+  "fictional":true,
+  "categories":["Shipping & Delivery","Returns & Refunds","Product Information","Payments & Billing","Complaints","Other"],
+  "default_priority":"medium",
+  "rules":[
+    {"id":"repeated-contact","signal":"repeated_contact","customer_phrases":["derde keer","drie keer","third time"],"priority":"high","escalate":true,"instruction":"Stel beoordeling door een senior medewerker voor. Het aantal contacten is een klantmelding, geen geverifieerde contacthistorie."},
+    {"id":"product-safety","signal":"unsafe_product","customer_phrases":["brandgevaar","vonken","smoke","oververhit"],"priority":"urgent","escalate":true,"instruction":"Stel directe beoordeling door een productspecialist voor; bevestig geen technische oorzaak of definitieve aansprakelijkheid."},
+    {"id":"delivery-conflict","signal":"delivery_conflict","customer_phrases":["niet aangekomen","niet ontvangen","not received"],"priority":"high","escalate":true,"instruction":"Alleen toepassen als een opgehaalde bestelling als delivered staat. Meld de tegenstrijdigheid met de klantmelding en stel intern onderzoek voor; wijzig de bestelling niet."}
+  ],
+  "response_guidelines":["Schrijf duidelijk, professioneel en empathisch.","Beloof geen vergoeding, terugbetaling of leverdatum zonder gecontroleerde bron.","Noem ontbrekende gegevens en vraag gericht om aanvulling.","Een klantmelding is geen onafhankelijk geverifieerd feit.","Prioriteit en escalatie blijven voorstellen totdat een medewerker ze bevestigt."]
+}

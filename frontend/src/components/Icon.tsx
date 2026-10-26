@@ -18,6 +18,7 @@ export type IconName =
   | 'close'
   | 'chevron'
   | 'back'
+  | 'headset'
 
 const paths: Record<IconName, string> = {
   book: 'M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1m0-15c3-2 6-2 9-1v15c-3-1-6-1-9 1V5Z',
@@ -37,6 +38,7 @@ const paths: Record<IconName, string> = {
   close: 'm6 6 12 12M6 18 18 6',
   chevron: 'm9 5 7 7-7 7',
   back: 'M20 12H4m7-7-7 7 7 7',
+  headset: 'M4 13v-2a8 8 0 0 1 16 0v2M4 12H3v6h4v-6H4Zm16 0h1v6h-4v-6h3Zm0 6v1a3 3 0 0 1-3 3h-4',
 }
 
 export function Icon({

@@ -1,6 +1,6 @@
 # Folio - Document Chat en Agents
 
-Folio is een webapplicatie met vier functies: **Document Chat**, **Refund Review**, **Document Comparison** en **Invoice Processing**. De factuuragent extraheert gegevens, controleert berekeningen en vergelijkt uitsluitend fictieve inkooporders. Alle functies tonen controleerbare document- en paginaverwijzingen. Chat, retouranalyse en factuurverwerking delen één document; vergelijkingen gebruiken een onafhankelijk documentpaar.
+Folio combineert **Document Chat** met vier gespecialiseerde agents: **Refund Review**, **Document Comparison**, **Invoice Processing** en **Customer Support**. De agents onderzoeken documenten en fictieve bedrijfsgegevens en leveren controleerbare conceptresultaten. Chat, retouranalyse, factuurverwerking en de supportkennisbank delen één actieve PDF; vergelijkingen gebruiken een onafhankelijk documentpaar. Supportvragen over de lokale catalogus of richtlijnen kunnen ook zonder PDF worden onderzocht.
 
 De applicatie gebruikt Retrieval-Augmented Generation (RAG): relevante tekst wordt uit het document opgehaald en als context aan een taalmodel (LLM) doorgegeven. Embeddings en zoekopdrachten worden lokaal uitgevoerd. Document Chat stuurt alleen de vraag en de gevonden fragmenten naar de LLM-provider. De agent stuurt daarnaast zijn opdracht en de resultaten van uitgevoerde tools mee, zoals fictieve bestelgegevens en berekende kalenderdagen.
 
@@ -17,6 +17,7 @@ De applicatie gebruikt Retrieval-Augmented Generation (RAG): relevante tekst wor
 - Factuurgegevens extraheren, deterministisch controleren, lokaal als beoordeeld markeren en naar JSON exporteren.
 - De agent zelf tools laten kiezen voor beleid zoeken, fictieve orders lezen en kalenderdagen berekenen.
 - Conceptadvies bekijken met een overzicht van uitgevoerde tools en hun status, zonder financiële acties.
+- Klantvragen analyseren, ticketcategorie en prioriteit voorstellen en een bewerkbaar conceptantwoord maken, met menselijke controle voor het kopiëren.
 
 De interface en foutmeldingen zijn Nederlandstalig. Het taalmodel krijgt de instructie om in de taal van de vraag te antwoorden.
 
@@ -27,16 +28,78 @@ De hoofdnavigatie bevat **Document Chat** en **AI Agents**. Document Chat is de 
 | Categorie | Agent |
 | --- | --- |
 | General & Productivity | Document Comparison Agent |
-| E-commerce & Customer Service | Refund Review Agent |
+| E-commerce & Customer Service | Refund Review Agent en Customer Support Agent |
 | Finance & Administration | Invoice Processing Agent |
 
 De categorieën in de zijbalk filteren de bibliotheek. Een agentkaart opent de bestaande werkinterface, met de actieve agentnaam, categorie, een teruglink en een keuzelijst om direct van agent te wisselen. Op tablet en mobiel is de hoofdnavigatie uitklapbaar via **Navigatie openen**.
 
 De frontend gebruikt native hashadressen, zoals `#/chat`, `#/agents`, `#/agents/document-comparison` en `#/agents/category/finance-administration`. Deze adressen kunnen direct worden geopend; de terug- en vooruitknoppen van de browser volgen de navigatie. Er is geen routerdependency of serverconfiguratie voor routeherschrijving nodig.
 
-Navigeren bewaart uploads, chatberichten, conceptopdrachten, resultaten en de lokale factuurreview binnen het huidige browservenster. Een lopend verzoek wordt door navigeren niet geannuleerd. Document Chat, Refund Review en Invoice Processing blijven één document delen: een nieuwe upload vervangt dat document en wist de bijbehorende resultaten. Document Comparison houdt een onafhankelijk documentpaar bij. Vernieuwen van de pagina wist de frontendstatus; een directe URL herstelt geen documenten of eerdere resultaten.
+Navigeren bewaart uploads, chatberichten, conceptopdrachten, resultaten en lokale reviews binnen het huidige browservenster. Een lopend verzoek wordt door navigeren niet geannuleerd. Document Chat, Refund Review, Invoice Processing en Customer Support delen één actieve PDF: een nieuwe upload vervangt dat document en wist de bijbehorende resultaten. Document Comparison houdt een onafhankelijk documentpaar bij. Vernieuwen van de pagina wist de frontendstatus; een directe URL herstelt geen documenten of eerdere resultaten.
 
 `frontend/src/agents.ts` bevat de getypeerde agent- en categorieconfiguratie. De bibliotheek, categorienavigatie en agentkeuzelijst gebruiken deze registratie. Een nieuwe agent wordt daar ingedeeld; een daadwerkelijk nieuwe werkinterface wordt daarnaast in `App.tsx` gekoppeld aan een eigen `screen`. De bestaande agentpanelen en API-contracten blijven afzonderlijk van deze navigatie.
+
+## Customer Support Agent
+
+Deze agent helpt een medewerker om een klantbericht te onderzoeken en een conceptantwoord op te stellen. De categorieën zijn **Shipping & Delivery**, **Returns & Refunds**, **Product Information**, **Payments & Billing**, **Complaints** en **Other**. Prioriteiten zijn `low`, `medium`, `high` en `urgent`. Het resultaat bevat een samenvatting, klantintentie, opgehaalde informatie met referenties, ontbrekende informatie, een voorgestelde vervolgstap en een escalatievoorstel.
+
+### Tools en uitvoering
+
+| Tool | Gegevens en grenzen |
+| --- | --- |
+| `search_knowledge_base(query)` | Bestaande RAG-retrieval in de geselecteerde PDF. Geeft tekst, bestandsnaam, document-ID, fysieke pagina en `reference_id`. Zonder PDF of relevante passages volgt `not_found`. |
+| `get_order_details(order_id)` | Fictieve `ORD-1023` t/m `ORD-1025` en de bestaande `DEMO-1001` t/m `DEMO-1003`. Alleen een expliciet opgegeven of in het klantbericht genoemd nummer. Onbekende lever- en verzendgegevens blijven `null`. |
+| `get_product_information(product_id)` | Lokale fictieve catalogus met `LAP-204` en `DOCK-110`. Alleen een product uit de invoer of een opgehaalde bestelling. Geen actuele voorraadgegevens. |
+| `get_support_guidelines()` | Expliciete JSON-configuratie met ticketcategorieën, prioriteitsregels en escalatievoorwaarden. Geen argumenten. |
+
+De bestaande `GeminiAgentModel` en `run_tool_loop` voeren de interactie uit volgens de handmatige [function-calling-interface van de officiële Python-SDK](https://googleapis.github.io/python-genai/#function-calling). Het model kiest de tool en argumenten; Python valideert de argumenten en controleert een allowlist. Het toolresultaat gaat als onbetrouwbare data terug naar het model. Er is geen vast stappenplan dat altijd alle vier tools uitvoert. Een productvraag kan alleen de catalogus gebruiken; een retourvraag kan alleen documentsearch nodig hebben.
+
+Pydantic valideert het JSON-eindantwoord. De backend accepteert alleen verwijzingen naar daadwerkelijk opgehaalde documentfragmenten en demogegevens. PDF-bronnen houden hun bestandsnaam en fysieke pagina; de bestaande bronweergave opent de oorspronkelijke PDF. Dit controleert de herkomst van referenties, niet automatisch de feitelijke juistheid van iedere gegenereerde zin.
+
+`priority_basis` en de `basis` van het escalatievoorstel zijn `model_suggestion` of `configured_guideline`. Alleen een opgehaalde, toepasselijke demoregel mag als `configured_guideline` worden aangehaald. De backend controleert de regel-ID, het bijbehorende prioriteitsniveau en het escalatievoorstel. De kleine demo-configuratie herkent expliciete tekstsignalen voor herhaald contact en productveiligheid. De regel voor een leveringsconflict vereist daarnaast een daadwerkelijk opgehaalde order met status `delivered`. Een melding van een derde contact blijft een klantmelding, zonder geverifieerde contacthistorie. De classificatie en algemene vervolgstap blijven LLM-voorstellen.
+
+Standaard zijn maximaal zes toolaanroepen en 90 seconden totale onderzoekstijd toegestaan. Ongeldige en geblokkeerde pogingen tellen mee. Timeouts worden tussen model- en toolstappen gecontroleerd; een al lopende lokale berekening wordt niet geforceerd afgebroken. Providerquota, ontbrekende sleutels, onbekende gegevens en gedeeltelijke tooluitvoering worden veilig teruggegeven. Er is geen betaalde fallbackprovider.
+
+### Interface en menselijke controle
+
+Open **AI Agents → E-commerce & Customer Service → Customer Support Agent**, of `#/agents/customer-support`. Plak uitsluitend een fictief klantbericht en vul eventueel een order-ID en product-ID in. Een kennisbank-PDF is optioneel; voor bedrijfsvoorwaarden is een passende documentbron nodig. De bestaande opslag bevat één actieve PDF, zodat meerdere beleidsdocumenten voor dit scenario worden gecombineerd in één voorbeeldkennisbank.
+
+Na **Analyseer ticket** verschijnen voorstellen, ontbrekende informatie, bronnen en werkelijk uitgevoerde tools. Categorie, prioriteit, escalatie en conceptantwoord zijn lokaal aanpasbaar. Na de reviewmarkering kan het bewerkte klantantwoord worden gekopieerd. Een volgende bewerking maakt die markering ongedaan. De kopieerknop verstuurt geen bericht en slaat geen ticket op. Als browsertoegang tot het klembord ontbreekt, kan de tekst handmatig worden geselecteerd en gekopieerd.
+
+De review en invoer blijven tijdens schermwissels behouden. Een gewijzigd klantbericht of gewijzigd ID verwijdert het oude resultaat. Een nieuwe PDF-upload maakt een eerdere supportanalyse ongeldig en late antwoorden worden genegeerd. De backend bewaart geen tickets of menselijke wijzigingen.
+
+### Fictieve gegevens en lokaal testen
+
+- `backend/app/fixtures/support_orders.json`: drie voorbeeldbestellingen met bekende en ontbrekende verzendgegevens. De bestaande retourorders worden via dezelfde gevalideerde loader hergebruikt.
+- `backend/app/fixtures/support_products.json`: twee producten met specificaties en onbekende actuele beschikbaarheid.
+- `backend/app/fixtures/support_guidelines.json`: expliciete demoregels en voorbeeldresponsrichtlijnen.
+- `examples/support/`: leesbare beleidsdocumenten, uitleg en `tickets.json` met elf scenario's, waaronder ontbrekende ID's, onbekende orders, klachten, een leveringsconflict en een urgente melding.
+
+De nieuwe order- en productdata zijn een fictieve snapshot van **25 oktober 2026** en worden niet automatisch bijgewerkt. Genereer vanuit de hoofdmap de tekstselecteerbare PDF's:
+
+```powershell
+.\.venv\Scripts\python.exe backend/scripts/create_support_examples.py
+```
+
+Upload `examples/support/support_knowledge_base.pdf` om verzending, retouren en betalingen samen te onderzoeken. `shipping_policy.pdf` en `customer_service_guidelines.pdf` zijn ook los beschikbaar. Gegenereerde PDF's staan buiten Git; de bronbestanden en generator zijn versieerbaar.
+
+Probeer vervolgens bijvoorbeeld:
+
+- `Ondersteunt product LAP-204 een tweede externe monitor?` — catalogus, zonder verplichte orderlookup of PDF.
+- `Mijn bestelling ORD-1023 is nog niet aangekomen.` — fictieve bestelstatus en eventueel verzendbeleid.
+- `Mag ik een geopend product nog retourneren?` — retourbeleid uit de geüploade kennisbank.
+- `Dit is de derde keer dat ik contact opneem en mijn probleem is nog niet opgelost.` — demoregel `repeated-contact`, met hoge prioriteit en escalatievoorstel.
+- `Mijn bestelling ORD-1024 is niet ontvangen.` — tegenstrijdigheid tussen klantmelding en een opgehaalde status `delivered`.
+
+De `expected_tools` in `tickets.json` zijn verwachtingen voor handmatige controle. Het live model kan andere relevante toolkeuzes maken. Alleen de supporttests uitvoeren:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest backend/tests/test_support.py backend/tests/test_support_gemini.py -q
+```
+
+Vanuit `frontend/`: `npm test -- src/Support.test.tsx src/Navigation.test.tsx`. Automatische tests mocken Gemini en bewijzen geen live classificatiekwaliteit. Promptinjection wordt begrensd door systeeminstructies, argumentvalidatie en een read-only allowlist; dit is geen garantie dat een LLM nooit een onjuiste uitspraak doet. Er zijn geen echte klantgegevens, ticketopslag, contacthistorie, webshopkoppeling of tools om berichten te verzenden, bestellingen te wijzigen of betalingen uit te voeren.
+
+Mogelijke uitbreidingen zijn een kennisbank met meerdere geïsoleerde documenten, meer expliciete demoregels, een uitgebreider evaluatieset voor classificatie en brongebruik, en opslag van menselijke correcties. Externe integraties en daadwerkelijke verzending vragen een afzonderlijk ontwerp en autorisatie.
 
 ## Installatie
 
@@ -443,10 +506,14 @@ backend/
     invoice_extraction.py Controle van velden tegen letterlijke PDF-citaten
     invoice_validation.py Deterministische reken- en PO-controles
     invoice_tools.py Vier tools met server-side factuur-/PO-gegevens
+    support.py       Customer Support-service en controle van aanbevelingen en referenties
+    support_schemas.py Ticketanalyse, aanbevelingen, bronmetadata en toolargumenten
+    support_tools.py Vier read-only tools voor kennisbank, orders, catalogus en richtlijnen
     agent_schemas.py Agentrequests, responses en gevalideerde toolargumenten
     agent_tools.py   Drie tools en expliciete allowlist voor dispatch
     fixtures/demo_orders.json  Uitsluitend fictieve bestellingen
     fixtures/purchase_orders.json  Uitsluitend fictieve inkooporders
+    fixtures/support_*.json    Fictieve supportorders, productcatalogus en expliciete richtlijnen
     service.py       RAG-pipeline en documentlevenscyclus
     errors.py        Applicatiefouten
   scripts/
@@ -454,6 +521,7 @@ backend/
     create_refund_policy.py
     create_comparison_examples.py
     create_invoice_examples.py
+    create_support_examples.py
     download_embeddings.py
   tests/
   pyproject.toml
@@ -467,9 +535,11 @@ frontend/
     validation.ts    Bestandsvalidatie in de browser
     useAssistant.ts  Document-, chat-, agent- en verzoekstatus
     useComparison.ts Vergelijkingspaar, bestanden, annuleren en rapportstatus
+    useCustomerSupport.ts Afzonderlijke supportstatus, annuleren en documentwissels
     invoiceExport.ts JSON-export van het serverresultaat, met lokale reviewmarkering
     components/      UploadPanel, ChatPanel, AgentPanel, ComparisonPanel, InvoicePanel, ToolActivity, Sources, Composer en Icon
                      AppNavigation en AgentLibrary voor navigatie en agentontdekking
+                     SupportPanel en SupportReview voor ticketanalyse en lokale beoordeling
   .env.example
   package.json
 .env.example
@@ -583,6 +653,8 @@ De backend logt op INFO-niveau alleen de bekende toolnaam en de status via `uvic
 | `GEMINI_MODEL` | `gemini-3.5-flash-lite` | Modelnaam voor de huidige LLM-adapter |
 | `GEMINI_TIMEOUT_SECONDS` | `45` | Timeout per LLM-aanroep; maximaal 180 seconden |
 | `AGENT_TIMEOUT_SECONDS` | `90` | Totale agentdeadline, gecontroleerd tussen stappen; maximaal 300 seconden |
+| `SUPPORT_MAX_TOOL_CALLS` | `6` | Toolbudget Customer Support; minimaal 1, maximaal 12 |
+| `SUPPORT_TIMEOUT_SECONDS` | `90` | Totale supportdeadline; maximaal 300 seconden |
 | `COMPARISON_MAX_TOOL_CALLS` | `12` | Toolpogingen per vergelijking; toegestaan van 2 tot 24 |
 | `COMPARISON_TIMEOUT_SECONDS` | `120` | Totale vergelijkingsdeadline; maximaal 300 seconden |
 | `COMPARISON_MAX_CONTEXT_CHARS` | `60000` | Cumulatief budget voor toolresultaten; toegestaan van 4.000 tot 120.000 tekens |
@@ -620,6 +692,7 @@ FastAPI beschrijft de API in OpenAPI. Pydantic valideert backendrequests en resp
 | `POST` | `/api/documents` | `multipart/form-data` met veld `file` | `201`: `document_id`, `filename`, `page_count`, `text_page_count`, `chunk_count` |
 | `POST` | `/api/questions` | JSON met `document_id` en `question` | `200`: `answer`, `sources`, `insufficient_context` |
 | `POST` | `/api/invoices/analyze` | JSON met `document_id` en `instruction` | `200`: extractie, controles, afwijkingen, bronnen, samenvatting, reviewstatus en tools |
+| `POST` | `/api/support/analyze` | `customer_message` (maximaal 2000 tekens), optioneel `document_id`, `order_id`, `product_id` | `200`: `analysis`, `sources`, `data_references`, `tool_calls`, `tool_call_limit`, `status`, `error`, `human_review_required`, `disclaimer` |
 | `POST` | `/api/comparisons/documents` | Multipart met `document_a` en `document_b` | `201`: `comparison_id` en uploadmetadata voor `document_a` en `document_b` |
 | `POST` | `/api/comparisons` | Vergelijkings-ID, beide document-ID's, opdracht en omvang | `200`: rapport, bevindingen, dekking, tools en status |
 | `POST` | `/api/agent` | JSON met `document_id`, `instruction` en optioneel `order_id` | `200`: `answer`, `sources`, `tool_calls`, `status`, `error`, `disclaimer`, `concept_advice` |
@@ -724,8 +797,11 @@ npm run build
 | `backend/tests/test_comparison.py` | Vergelijkingsinhoud, onzekerheid, documentisolatie, bron-ID's, uploads, budgetten, deadlines en promptinjectie |
 | `backend/tests/test_comparison_gemini.py` | Echte SDK met gemockt HTTP-verkeer voor vergelijkingstools en documentgebonden referenties |
 | `backend/tests/test_invoice.py` | Extractie en bewijs, Decimal-berekeningen, PO-afwijkingen, toolkeuze, limieten, documentwissels en promptinjectie |
+| `backend/tests/test_support.py` | Supporttoolselectie, categorieën, geconfigureerde prioriteit en escalatie, bronverwijzingen, onbekende gegevens, budgetten, deadlines, validatie en injectiepogingen |
+| `backend/tests/test_support_gemini.py` | Echte SDK-serialisatie met gemockt HTTP, function call-ID's, signatures, veilige providerfouten en ontbrekende sleutel |
 | `backend/tests/test_invoice_gemini.py` | Echte SDK met gemockt HTTP-verkeer: toolselectie, gestructureerde extractie, bronnen en thought signatures |
 | `frontend/src/Invoice.test.tsx` | Upload, factuurresultaten, controles, reviewmarkering, fouten en late resultaten |
+| `frontend/src/Support.test.tsx` | Registratie, optionele PDF en ID's, conceptresultaten, bronlinks, bewerken, menselijke review, klembordfouten, navigatie en late antwoorden |
 | `frontend/src/Navigation.test.tsx` | Agentcategorieën, kaarten, directe adressen, terug/vooruit, actieve navigatie, menu-interactie en behoud van uploads en conceptinvoer |
 | `frontend/src/invoiceExport.test.ts` | JSON-export met exacte decimale strings, nulls en scheiding van lokale review en financiële goedkeuring |
 | `frontend/src/Comparison.test.tsx` | Twee uploads, omvang, bevindingen, bronlinks per PDF, moduswissels en late/verouderde rapporten |

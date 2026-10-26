@@ -9,6 +9,8 @@ def test_gemini_and_local_embedding_environment(monkeypatch):
     monkeypatch.setenv("EMBEDDING_MODEL", "configured/embedding")
     monkeypatch.setenv("GEMINI_TIMEOUT_SECONDS", "12")
     monkeypatch.setenv("AGENT_TIMEOUT_SECONDS", "60")
+    monkeypatch.setenv("SUPPORT_MAX_TOOL_CALLS", "5")
+    monkeypatch.setenv("SUPPORT_TIMEOUT_SECONDS", "75")
     monkeypatch.setenv("COMPARISON_MAX_TOOL_CALLS", "8")
     monkeypatch.setenv("COMPARISON_TIMEOUT_SECONDS", "110")
     monkeypatch.setenv("COMPARISON_MAX_CONTEXT_CHARS", "45000")
@@ -22,6 +24,8 @@ def test_gemini_and_local_embedding_environment(monkeypatch):
     assert settings.embedding_model == "configured/embedding"
     assert settings.gemini_timeout_seconds == 12
     assert settings.agent_timeout_seconds == 60
+    assert settings.support_max_tool_calls == 5
+    assert settings.support_timeout_seconds == 75
     assert settings.comparison_max_tool_calls == 8
     assert settings.comparison_timeout_seconds == 110
     assert settings.comparison_max_context_chars == 45000
@@ -56,6 +60,10 @@ def test_dotenv_prefixes_preserve_required_trailing_spaces(tmp_path):
         {"gemini_timeout_seconds": 181},
         {"agent_timeout_seconds": 0},
         {"agent_timeout_seconds": 301},
+        {"support_max_tool_calls": 0},
+        {"support_max_tool_calls": 13},
+        {"support_timeout_seconds": 0},
+        {"support_timeout_seconds": 301},
         {"comparison_max_tool_calls": 1},
         {"comparison_max_tool_calls": 25},
         {"comparison_timeout_seconds": 0},

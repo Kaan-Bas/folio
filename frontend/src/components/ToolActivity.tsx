@@ -12,6 +12,9 @@ const labels: Record<string, string> = {
   get_purchase_order: 'Fictieve inkooporder ophalen',
   validate_invoice_totals: 'Factuurbedragen controleren',
   compare_invoice_with_order: 'Factuur met inkooporder vergelijken',
+  search_knowledge_base: 'Kennisbank doorzoeken',
+  get_product_information: 'Fictieve productinformatie opzoeken',
+  get_support_guidelines: 'Supportrichtlijnen raadplegen',
 }
 const statuses = {
   success: 'Geslaagd',

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   ApiError,
   analyzeInvoice,
+  analyzeSupport,
   askQuestion,
   compareDocuments,
   getHealth,
@@ -11,6 +12,24 @@ import {
 } from './api'
 
 describe('API contract', () => {
+  it('sends a support ticket with optional document and entity IDs to its own endpoint', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ status: 'completed' }) })
+    vi.stubGlobal('fetch', fetchMock)
+    const ticket = {
+      customer_message: 'Vraag over LAP-204',
+      document_id: null,
+      order_id: null,
+      product_id: 'LAP-204',
+    }
+    const controller = new AbortController()
+    await analyzeSupport(ticket, controller.signal)
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toMatch(/\/api\/support\/analyze$/)
+    expect(JSON.parse(options.body)).toEqual(ticket)
+    expect(options.signal).toBe(controller.signal)
+  })
   it('sends only the document ID and task to the invoice endpoint', async () => {
     const fetchMock = vi
       .fn()

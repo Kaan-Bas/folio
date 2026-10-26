@@ -11,8 +11,8 @@ from starlette.exceptions import HTTPException
 from app.agent import AgentModel, AgentService
 from app.agent_schemas import AgentRequest, AgentResponse
 from app.comparison import COMPARISON_SYSTEM_PROMPT, ComparisonService
-from app.comparison_tools import COMPARISON_TOOL_SPECS
 from app.comparison_schemas import ComparisonRequest, ComparisonResponse, ComparisonUploadResponse
+from app.comparison_tools import COMPARISON_TOOL_SPECS
 from app.config import Settings
 from app.embeddings import Embedder, LocalEmbedder
 from app.errors import AppError
@@ -30,6 +30,9 @@ from app.schemas import (
     UploadResponse,
 )
 from app.service import RAGService
+from app.support import SUPPORT_SYSTEM_PROMPT, SupportService
+from app.support_schemas import SupportRequest, SupportResponse
+from app.support_tools import SUPPORT_TOOL_SPECS
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +69,7 @@ def create_app(
     comparison_model: AgentModel | None = None,
     invoice_model: AgentModel | None = None,
     invoice_extractor: InvoiceExtractor | None = None,
+    support_model: AgentModel | None = None,
 ) -> FastAPI:
     config = settings if settings is not None else Settings()
     service = RAGService(
@@ -82,6 +86,16 @@ def create_app(
         },
     )
     app.state.rag = service
+    app.state.support = SupportService(
+        service,
+        support_model
+        if support_model is not None
+        else GeminiAgentModel(
+            config,
+            system_prompt=SUPPORT_SYSTEM_PROMPT,
+            tool_specs=SUPPORT_TOOL_SPECS,
+        ),
+    )
     app.state.agent = AgentService(
         service,
         agent_model if agent_model is not None else GeminiAgentModel(config),
@@ -126,7 +140,8 @@ def create_app(
         return error_response(
             422,
             "validation_error",
-            "Controleer je aanvraag: kies een PDF en stel een niet-lege vraag van maximaal 2000 tekens met een geldige document-ID.",
+            "Controleer je aanvraag: gebruik niet-lege tekst van maximaal 2000 tekens "
+            "en geldige document-, order- of product-ID's waar deze worden gevraagd.",
         )
 
     @app.exception_handler(HTTPException)
@@ -189,6 +204,10 @@ def create_app(
     @app.post("/api/invoices/analyze", response_model=InvoiceResponse)
     def analyze_invoice(request: InvoiceRequest) -> InvoiceResponse:
         return app.state.invoice.run(request)
+
+    @app.post("/api/support/analyze", response_model=SupportResponse)
+    def analyze_support(request: SupportRequest) -> SupportResponse:
+        return app.state.support.run(request)
 
     return app
 

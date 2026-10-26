@@ -11,10 +11,16 @@ import { useAssistant } from './useAssistant'
 import { useComparison } from './useComparison'
 import { ComparisonPanel } from './components/ComparisonPanel'
 import { routeHref, useNavigation } from './navigation'
+import { useCustomerSupport } from './useCustomerSupport'
+import { SupportPanel } from './components/SupportPanel'
 
 export default function App() {
   const assistant = useAssistant()
   const comparison = useComparison(assistant.health?.max_upload_mb ?? 10)
+  const support = useCustomerSupport(
+    assistant.document?.document_id ?? null,
+    assistant.busy === 'upload',
+  )
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const route = useNavigation()
   const activeAgent = route.view === 'agent' ? agents.find((a) => a.id === route.agentId) : null
@@ -142,7 +148,12 @@ export default function App() {
           </div>
           <div
             className="workspace"
-            hidden={route.view !== 'chat' && screen !== 'refund' && screen !== 'invoice'}
+            hidden={
+              route.view !== 'chat' &&
+              screen !== 'refund' &&
+              screen !== 'invoice' &&
+              screen !== 'support'
+            }
           >
             <UploadPanel
               document={assistant.document}
@@ -182,6 +193,15 @@ export default function App() {
                 error={assistant.error}
                 pdfUrl={pdfUrl}
                 onRun={assistant.investigate}
+              />
+            </div>
+            <div className="workspace-panel" hidden={screen !== 'support'}>
+              <SupportPanel
+                model={support}
+                document={assistant.document}
+                uploading={assistant.busy === 'upload'}
+                uploadError={assistant.error}
+                pdfUrl={pdfUrl}
               />
             </div>
           </div>

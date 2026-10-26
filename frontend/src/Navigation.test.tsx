@@ -88,6 +88,7 @@ describe('Folio navigation', () => {
       comparison: 'Document Comparison Agent',
       refund: 'AI Agent voor retouronderzoek',
       invoice: 'Invoice Processing Agent',
+      support: 'Customer Support Agent',
     }
     expect(screen.getByRole('region', { name: regionNames[agent.screen] })).toBeVisible()
     expect(screen.getByRole('heading', { level: 1 })).toHaveFocus()
@@ -258,7 +259,7 @@ describe('agent registration and routes', () => {
       '#/agents/example-agent',
     )
     expect(groupAgents(available).map((c) => c.displayOrder)).toEqual([1, 2, 3])
-    expect(agents).toHaveLength(3)
+    expect(agents).toHaveLength(4)
   })
 
   it.each([

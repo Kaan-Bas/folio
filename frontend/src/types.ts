@@ -146,3 +146,55 @@ export interface InvoiceResponse {
   error: { code: string; message: string } | null
   disclaimer: string
 }
+
+export const supportCategories = [
+  'Shipping & Delivery',
+  'Returns & Refunds',
+  'Product Information',
+  'Payments & Billing',
+  'Complaints',
+  'Other',
+] as const
+export type SupportCategory = (typeof supportCategories)[number]
+export type SupportPriority = 'low' | 'medium' | 'high' | 'urgent'
+export type SupportBasis = 'model_suggestion' | 'configured_guideline'
+
+export interface SupportRequest {
+  customer_message: string
+  document_id: string | null
+  order_id: string | null
+  product_id: string | null
+}
+
+export interface SupportAnalysis {
+  ticket_category: SupportCategory
+  suggested_priority: SupportPriority
+  priority_reason: string
+  priority_basis: SupportBasis
+  priority_rule_ids: string[]
+  short_summary: string
+  customer_intent: string
+  relevant_information: { information: string; reference_ids: string[] }[]
+  missing_information: string[]
+  recommended_next_action: string
+  escalation: { recommended: boolean; reason: string; basis: SupportBasis; rule_ids: string[] }
+  suggested_customer_response: string
+}
+
+export interface SupportResponse {
+  document_id: string | null
+  analysis: SupportAnalysis | null
+  sources: (Source & { document_id: string; filename: string; reference_id: string })[]
+  data_references: {
+    reference_id: string
+    kind: 'order' | 'product' | 'guidelines'
+    label: string
+    data: Record<string, unknown>
+  }[]
+  tool_calls: AgentToolCall[]
+  tool_call_limit: number
+  status: 'completed' | 'insufficient_information' | 'limit_reached' | 'error'
+  error: { code: string; message: string } | null
+  human_review_required: true
+  disclaimer: string
+}

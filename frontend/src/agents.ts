@@ -31,7 +31,7 @@ export const agentCategories = [
 }[]
 
 export type AgentCategoryId = (typeof agentCategories)[number]['id']
-export type AgentScreen = 'comparison' | 'refund' | 'invoice'
+export type AgentScreen = 'comparison' | 'refund' | 'invoice' | 'support'
 
 export interface AgentDefinition {
   id: string
@@ -69,6 +69,15 @@ export const agents = [
     category: 'finance-administration',
     icon: 'receipt',
     screen: 'invoice',
+  },
+  {
+    id: 'customer-support',
+    name: 'Customer Support Agent',
+    description:
+      'Analyze customer inquiries, retrieve relevant information, classify support tickets, and generate context-aware response suggestions.',
+    category: 'ecommerce-customer-service',
+    icon: 'headset',
+    screen: 'support',
   },
 ] as const satisfies readonly AgentDefinition[]
 

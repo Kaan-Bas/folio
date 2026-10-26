@@ -436,6 +436,138 @@ main {
   scrollbar-width: thin;
   scrollbar-color: #d5ddca transparent;
 }
+.support-note {
+  color: #6d7863;
+  font-size: 11px;
+  line-height: 1.9;
+  margin: 12px 0 20px;
+}
+.support-input-grid,
+.support-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.support-input-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.support-input-grid select {
+  width: 100%;
+  min-height: 43px;
+  padding: 10px 12px;
+  border: 1px solid #dce3d2;
+  border-radius: 8px;
+  background: #fff;
+  color: #3e5037;
+  font: inherit;
+  font-size: 12px;
+}
+.support-input-grid select:focus-visible {
+  outline: 2px solid #8eab90;
+  outline-offset: 2px;
+}
+.support-facts {
+  margin: 20px 0;
+}
+.support-facts > div {
+  padding: 14px;
+  border: 1px solid #dfe5d6;
+  border-radius: 8px;
+}
+.support-facts dt {
+  font-size: 10px;
+  color: #78866c;
+  margin-bottom: 7px;
+}
+.support-facts dd {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+.support-guidance,
+.support-information,
+.support-references {
+  margin: 22px 0;
+  font-size: 12px;
+  line-height: 1.9;
+  color: #526549;
+}
+.support-content h4 {
+  margin: 16px 0 7px;
+  font-size: 12px;
+  color: #3e5037;
+  font-weight: 600;
+}
+.support-guidance > span,
+.support-information small {
+  display: block;
+  font-size: 10px;
+  color: #78866c;
+  overflow-wrap: anywhere;
+}
+.support-information ul {
+  padding-left: 19px;
+}
+.support-information li + li {
+  margin-top: 9px;
+}
+.support-review {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  margin: 25px 0;
+}
+.support-review h3 {
+  margin: 0;
+}
+.support-review .support-note {
+  margin: 2px 0 12px;
+}
+.support-review textarea {
+  min-height: 190px;
+  max-height: 450px;
+}
+.support-review .support-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.9;
+  margin: 10px 0;
+}
+.support-review .support-checkbox input {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin: 4px 0 0;
+  flex-shrink: 0;
+  accent-color: var(--green);
+}
+.support-references details {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 10px;
+}
+.support-references summary {
+  cursor: pointer;
+}
+.support-references pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 260px;
+  overflow: auto;
+  font-size: 10px;
+}
+@media (max-width: 600px) {
+  .support-input-grid,
+  .support-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .agent-intro h2 {
   font-family: Manrope, sans-serif;
   font-size: 23px;

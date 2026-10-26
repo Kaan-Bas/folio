@@ -1,0 +1,5 @@
+[
+  {"order_id":"ORD-1023","order_date":"2026-10-20","order_status":"shipped","product":"Nexora Travel Laptop","product_id":"LAP-204","expected_delivery_date":"2026-10-23","delivered_at":null,"shipping_status":"in_transit"},
+  {"order_id":"ORD-1024","order_date":"2026-10-19","order_status":"delivered","product":"Nexora Dual Dock","product_id":"DOCK-110","expected_delivery_date":"2026-10-22","delivered_at":"2026-10-22","shipping_status":"marked_delivered"},
+  {"order_id":"ORD-1025","order_date":"2026-10-24","order_status":"processing","product":"Nexora Travel Laptop","product_id":"LAP-204","expected_delivery_date":null,"delivered_at":null,"shipping_status":null}
+]
