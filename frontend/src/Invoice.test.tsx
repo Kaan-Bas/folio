@@ -101,7 +101,7 @@ async function upload() {
 async function open() {
   const user = userEvent.setup()
   render(<App />)
-  await openAgent(user, 'Invoice Processing Agent')
+  await openAgent(user, 'Factuurverwerking agent')
   return user
 }
 
@@ -163,7 +163,7 @@ describe('Invoice Processing', () => {
     await user.click(screen.getByRole('button', { name: 'Exporteer JSON' }))
     expect(downloadInvoiceJson).toHaveBeenCalledWith(result, true)
     await user.click(screen.getByRole('link', { name: 'Document Chat' }))
-    await openAgent(user, 'Invoice Processing Agent')
+    await openAgent(user, 'Factuurverwerking agent')
     expect(screen.getByLabelText('Lokaal als gecontroleerd markeren')).toBeChecked()
     await user.click(screen.getByRole('button', { name: 'Analyseer factuur' }))
     await screen.findByText(result.summary)

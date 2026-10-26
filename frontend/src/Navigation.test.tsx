@@ -85,10 +85,10 @@ describe('Folio navigation', () => {
     render(<App />)
     await openAgent(user, agent.name)
     const regionNames = {
-      comparison: 'Document Comparison Agent',
-      refund: 'AI Agent voor retouronderzoek',
-      invoice: 'Invoice Processing Agent',
-      support: 'Customer Support Agent',
+      comparison: 'Documentvergelijking agent',
+      refund: 'Retourbeoordeling agent',
+      invoice: 'Factuurverwerking agent',
+      support: 'Klantenservice agent',
     }
     expect(screen.getByRole('region', { name: regionNames[agent.screen] })).toBeVisible()
     expect(screen.getByRole('heading', { level: 1 })).toHaveFocus()
@@ -110,32 +110,32 @@ describe('Folio navigation', () => {
   it('filters categories from the sidebar and can restore the complete library', async () => {
     const user = userEvent.setup()
     render(<App />)
-    const name = 'Finance & Administration'
+    const name = 'Financiën & administratie'
     await user.click(screen.getByRole('link', { name }))
-    expect(await screen.findByRole('link', { name: 'Invoice Processing Agent' })).toBeVisible()
-    expect(screen.queryByRole('link', { name: 'Refund Review Agent' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'Factuurverwerking agent' })).toBeVisible()
+    expect(screen.queryByRole('link', { name: 'Retourbeoordeling agent' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name })).toHaveAttribute('aria-current', 'page')
     await user.click(screen.getByRole('link', { name: 'AI Agents' }))
-    expect(await screen.findByRole('link', { name: 'Refund Review Agent' })).toBeVisible()
+    expect(await screen.findByRole('link', { name: 'Retourbeoordeling agent' })).toBeVisible()
   })
 
   it('switches agents directly and restores browser back and forward navigation', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await openAgent(user, 'Document Comparison Agent')
+    await openAgent(user, 'Documentvergelijking agent')
     await user.selectOptions(screen.getByLabelText('Agent wisselen'), 'invoice-processing')
-    await screen.findByRole('heading', { level: 1, name: /^Invoice Processing Agent/ })
+    await screen.findByRole('heading', { level: 1, name: /^Factuurverwerking/ })
     act(() => window.history.back())
-    await screen.findByRole('heading', { level: 1, name: /^Document Comparison Agent/ })
+    await screen.findByRole('heading', { level: 1, name: /^Documentvergelijking/ })
     act(() => window.history.forward())
-    await screen.findByRole('heading', { level: 1, name: /^Invoice Processing Agent/ })
+    await screen.findByRole('heading', { level: 1, name: /^Factuurverwerking/ })
     expect(window.location.hash).toBe('#/agents/invoice-processing')
   })
 
   it('opens an agent through its direct URL', () => {
     window.history.replaceState(null, '', '#/agents/refund-review')
     render(<App />)
-    expect(screen.getByRole('heading', { level: 1, name: /^Refund Review Agent/ })).toBeVisible()
+    expect(screen.getByRole('heading', { level: 1, name: /^Retourbeoordeling/ })).toBeVisible()
   })
 
   it('preserves uploads, chat drafts and agent drafts when navigating between workspaces', async () => {
@@ -143,21 +143,21 @@ describe('Folio navigation', () => {
     render(<App />)
     await upload()
     await user.type(screen.getByLabelText('Je vraag over de PDF'), 'Mijn conceptvraag')
-    await openAgent(user, 'Refund Review Agent')
+    await openAgent(user, 'Retourbeoordeling agent')
     await user.type(screen.getByLabelText(/Fictieve order-ID/), 'DEMO-1002')
     await user.clear(screen.getByLabelText('Opdracht'))
     await user.type(screen.getByLabelText('Opdracht'), 'Bewaar deze retourvraag')
     await user.selectOptions(screen.getByLabelText('Agent wisselen'), 'invoice-processing')
-    await screen.findByRole('heading', { level: 1, name: /^Invoice Processing Agent/ })
+    await screen.findByRole('heading', { level: 1, name: /^Factuurverwerking/ })
     await user.clear(screen.getByLabelText('Factuuropdracht'))
     await user.type(screen.getByLabelText('Factuuropdracht'), 'Bewaar deze factuurvraag')
     await user.click(screen.getByRole('link', { name: 'Document Chat' }))
     await screen.findByRole('region', { name: 'Chat over je PDF' })
     expect(screen.getByLabelText('Je vraag over de PDF')).toHaveValue('Mijn conceptvraag')
-    await openAgent(user, 'Refund Review Agent')
+    await openAgent(user, 'Retourbeoordeling agent')
     expect(screen.getByLabelText(/Fictieve order-ID/)).toHaveValue('DEMO-1002')
     expect(screen.getByLabelText('Opdracht')).toHaveValue('Bewaar deze retourvraag')
-    await openAgent(user, 'Invoice Processing Agent')
+    await openAgent(user, 'Factuurverwerking agent')
     expect(screen.getByLabelText('Factuuropdracht')).toHaveValue('Bewaar deze factuurvraag')
     expect(api.uploadDocument).toHaveBeenCalledTimes(1)
     expect(screen.getByText('beleid.pdf')).toBeVisible()
@@ -166,7 +166,7 @@ describe('Folio navigation', () => {
   it('preserves both comparison file inputs, the scope and instruction through library navigation', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await openAgent(user, 'Document Comparison Agent')
+    await openAgent(user, 'Documentvergelijking agent')
     const a = new File(['%PDF'], 'oud.pdf', { type: 'application/pdf' })
     const b = new File(['%PDF'], 'nieuw.pdf', { type: 'application/pdf' })
     fireEvent.change(screen.getByLabelText('Document A'), { target: { files: [a] } })
@@ -175,8 +175,8 @@ describe('Folio navigation', () => {
     await user.clear(screen.getByLabelText('Vergelijkingsopdracht'))
     await user.type(screen.getByLabelText('Vergelijkingsopdracht'), 'Vergelijk thuiswerkdagen')
     await user.click(screen.getByRole('link', { name: 'Terug naar AI Agents' }))
-    await user.click(await screen.findByRole('link', { name: 'Document Comparison Agent' }))
-    await screen.findByRole('heading', { level: 1, name: /^Document Comparison Agent/ })
+    await user.click(await screen.findByRole('link', { name: 'Documentvergelijking agent' }))
+    await screen.findByRole('heading', { level: 1, name: /^Documentvergelijking/ })
     expect((screen.getByLabelText('Document A') as HTMLInputElement).files?.[0]).toBe(a)
     expect((screen.getByLabelText('Document B') as HTMLInputElement).files?.[0]).toBe(b)
     expect(screen.getByLabelText('Omvang')).toHaveValue('broad')
@@ -193,10 +193,10 @@ describe('Folio navigation', () => {
     const user = userEvent.setup()
     render(<App />)
     await upload()
-    await openAgent(user, 'Refund Review Agent')
+    await openAgent(user, 'Retourbeoordeling agent')
     await user.click(screen.getByRole('button', { name: 'Onderzoek starten' }))
     await user.click(screen.getByRole('link', { name: 'Terug naar AI Agents' }))
-    await screen.findByRole('link', { name: 'Refund Review Agent' })
+    await screen.findByRole('link', { name: 'Retourbeoordeling agent' })
     await act(async () =>
       resolve({
         answer: 'Conceptadvies blijft bewaard.',
@@ -208,7 +208,7 @@ describe('Folio navigation', () => {
         disclaimer: 'Geen definitief besluit.',
       }),
     )
-    await user.click(screen.getByRole('link', { name: 'Refund Review Agent' }))
+    await user.click(screen.getByRole('link', { name: 'Retourbeoordeling agent' }))
     expect(await screen.findByText('Conceptadvies blijft bewaard.')).toBeVisible()
   })
 
@@ -234,7 +234,7 @@ describe('Folio navigation', () => {
   it('moves focus with the skip link without changing the current agent route', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await openAgent(user, 'Invoice Processing Agent')
+    await openAgent(user, 'Factuurverwerking agent')
     await user.click(screen.getByRole('link', { name: 'Naar inhoud' }))
     expect(screen.getByRole('main')).toHaveFocus()
     expect(window.location.hash).toBe('#/agents/invoice-processing')
@@ -253,7 +253,7 @@ describe('agent registration and routes', () => {
     }
     const available = [...agents, extra]
     render(<AgentLibrary available={available} />)
-    const group = screen.getByRole('region', { name: 'General & Productivity' })
+    const group = screen.getByRole('region', { name: 'Algemeen & productiviteit' })
     expect(within(group).getByRole('link', { name: extra.name })).toHaveAttribute(
       'href',
       '#/agents/example-agent',

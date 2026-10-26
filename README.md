@@ -1,6 +1,6 @@
 # Folio - Document Chat en Agents
 
-Folio combineert **Document Chat** met vier gespecialiseerde agents: **Refund Review**, **Document Comparison**, **Invoice Processing** en **Customer Support**. De agents onderzoeken documenten en fictieve bedrijfsgegevens en leveren controleerbare conceptresultaten. Chat, retouranalyse, factuurverwerking en de supportkennisbank delen één actieve PDF; vergelijkingen gebruiken een onafhankelijk documentpaar. Supportvragen over de lokale catalogus of richtlijnen kunnen ook zonder PDF worden onderzocht.
+Folio combineert **Document Chat** met vier gespecialiseerde agents: **Retourbeoordeling agent**, **Documentvergelijking agent**, **Factuurverwerking agent** en **Klantenservice agent**. De agents onderzoeken documenten en fictieve bedrijfsgegevens en leveren controleerbare conceptresultaten. Chat, retouranalyse, factuurverwerking en de supportkennisbank delen één actieve PDF; vergelijkingen gebruiken een onafhankelijk documentpaar. Supportvragen over de lokale catalogus of richtlijnen kunnen ook zonder PDF worden onderzocht.
 
 De applicatie gebruikt Retrieval-Augmented Generation (RAG): relevante tekst wordt uit het document opgehaald en als context aan een taalmodel (LLM) doorgegeven. Embeddings en zoekopdrachten worden lokaal uitgevoerd. Document Chat stuurt alleen de vraag en de gevonden fragmenten naar de LLM-provider. De agent stuurt daarnaast zijn opdracht en de resultaten van uitgevoerde tools mee, zoals fictieve bestelgegevens en berekende kalenderdagen.
 
@@ -27,19 +27,19 @@ De hoofdnavigatie bevat **Document Chat** en **AI Agents**. Document Chat is de 
 
 | Categorie | Agent |
 | --- | --- |
-| General & Productivity | Document Comparison Agent |
-| E-commerce & Customer Service | Refund Review Agent en Customer Support Agent |
-| Finance & Administration | Invoice Processing Agent |
+| Algemeen & productiviteit | Documentvergelijking agent |
+| E-commerce & klantenservice | Retourbeoordeling agent en Klantenservice agent |
+| Financiën & administratie | Factuurverwerking agent |
 
 De categorieën in de zijbalk filteren de bibliotheek. Een agentkaart opent de bestaande werkinterface, met de actieve agentnaam, categorie, een teruglink en een keuzelijst om direct van agent te wisselen. Op tablet en mobiel is de hoofdnavigatie uitklapbaar via **Navigatie openen**.
 
 De frontend gebruikt native hashadressen, zoals `#/chat`, `#/agents`, `#/agents/document-comparison` en `#/agents/category/finance-administration`. Deze adressen kunnen direct worden geopend; de terug- en vooruitknoppen van de browser volgen de navigatie. Er is geen routerdependency of serverconfiguratie voor routeherschrijving nodig.
 
-Navigeren bewaart uploads, chatberichten, conceptopdrachten, resultaten en lokale reviews binnen het huidige browservenster. Een lopend verzoek wordt door navigeren niet geannuleerd. Document Chat, Refund Review, Invoice Processing en Customer Support delen één actieve PDF: een nieuwe upload vervangt dat document en wist de bijbehorende resultaten. Document Comparison houdt een onafhankelijk documentpaar bij. Vernieuwen van de pagina wist de frontendstatus; een directe URL herstelt geen documenten of eerdere resultaten.
+Navigeren bewaart uploads, chatberichten, conceptopdrachten, resultaten en lokale reviews binnen het huidige browservenster. Een lopend verzoek wordt door navigeren niet geannuleerd. Document Chat, Retourbeoordeling agent, Factuurverwerking agent en Klantenservice agent delen één actieve PDF: een nieuwe upload vervangt dat document en wist de bijbehorende resultaten. Documentvergelijking agent houdt een onafhankelijk documentpaar bij. Vernieuwen van de pagina wist de frontendstatus; een directe URL herstelt geen documenten of eerdere resultaten.
 
 `frontend/src/agents.ts` bevat de getypeerde agent- en categorieconfiguratie. De bibliotheek, categorienavigatie en agentkeuzelijst gebruiken deze registratie. Een nieuwe agent wordt daar ingedeeld; een daadwerkelijk nieuwe werkinterface wordt daarnaast in `App.tsx` gekoppeld aan een eigen `screen`. De bestaande agentpanelen en API-contracten blijven afzonderlijk van deze navigatie.
 
-## Customer Support Agent
+## Klantenservice agent
 
 Deze agent helpt een medewerker om een klantbericht te onderzoeken en een conceptantwoord op te stellen. De categorieën zijn **Shipping & Delivery**, **Returns & Refunds**, **Product Information**, **Payments & Billing**, **Complaints** en **Other**. Prioriteiten zijn `low`, `medium`, `high` en `urgent`. Het resultaat bevat een samenvatting, klantintentie, opgehaalde informatie met referenties, ontbrekende informatie, een voorgestelde vervolgstap en een escalatievoorstel.
 
@@ -62,7 +62,7 @@ Standaard zijn maximaal zes toolaanroepen en 90 seconden totale onderzoekstijd t
 
 ### Interface en menselijke controle
 
-Open **AI Agents → E-commerce & Customer Service → Customer Support Agent**, of `#/agents/customer-support`. Plak uitsluitend een fictief klantbericht en vul eventueel een order-ID en product-ID in. Een kennisbank-PDF is optioneel; voor bedrijfsvoorwaarden is een passende documentbron nodig. De bestaande opslag bevat één actieve PDF, zodat meerdere beleidsdocumenten voor dit scenario worden gecombineerd in één voorbeeldkennisbank.
+Open **AI Agents → E-commerce & klantenservice → Klantenservice agent**, of `#/agents/customer-support`. Plak uitsluitend een fictief klantbericht en vul eventueel een order-ID en product-ID in. Een kennisbank-PDF is optioneel; voor bedrijfsvoorwaarden is een passende documentbron nodig. De bestaande opslag bevat één actieve PDF, zodat meerdere beleidsdocumenten voor dit scenario worden gecombineerd in één voorbeeldkennisbank.
 
 Na **Analyseer ticket** verschijnen voorstellen, ontbrekende informatie, bronnen en werkelijk uitgevoerde tools. Categorie, prioriteit, escalatie en conceptantwoord zijn lokaal aanpasbaar. Na de reviewmarkering kan het bewerkte klantantwoord worden gekopieerd. Een volgende bewerking maakt die markering ongedaan. De kopieerknop verstuurt geen bericht en slaat geen ticket op. Als browsertoegang tot het klembord ontbreekt, kan de tekst handmatig worden geselecteerd en gekopieerd.
 
@@ -212,7 +212,7 @@ Met een geactiveerde Python-omgeving kan ook `python backend/scripts/create_exam
 
 Dit zijn voorbeelden voor handmatige controle. De gevonden fragmenten en de formulering van modelantwoorden kunnen variëren.
 
-### Refund Review lokaal gebruiken
+### Retourbeoordeling agent lokaal gebruiken
 
 Genereer eerst het fictieve retourbeleid:
 
@@ -223,7 +223,7 @@ Genereer eerst het fictieve retourbeleid:
 Met een geactiveerde Python-omgeving werkt ook `python backend/scripts/create_refund_policy.py`. Het script schrijft `examples/refund_policy.pdf`, een document van drie pagina's. De bestaande backend- en frontendstartcommando's blijven gelden; extra dependencies of API-sleutels zijn niet nodig.
 
 1. Upload `examples/refund_policy.pdf` via het bestaande uploadpaneel.
-2. Kies **Refund Review**.
+2. Kies **Retourbeoordeling agent**.
 3. Vul bijvoorbeeld `DEMO-1001` in en laat de voorgestelde onderzoeksopdracht staan.
 4. Start het onderzoek en bekijk het conceptadvies, de bronnen en de uitgevoerde tools.
 
@@ -242,9 +242,9 @@ De fixture gebruikt vaste retouraanvraagdatums, niet de huidige systeemdatum. Op
 
 Alle resultaten zijn **conceptadviezen**, geen definitieve terugbetalingsbesluiten. De agent kan geen orders wijzigen, retouren goedkeuren of terugbetalingen uitvoeren.
 
-## Document Comparison gebruiken
+## Documentvergelijking agent gebruiken
 
-Document Chat voert een vaste zoek-en-antwoordketen uit op één document. Refund Review kiest tools voor een fictief retouronderzoek. Document Comparison kiest zelfstandig tools om de twee geselecteerde documenten te onderzoeken. De agents worden afzonderlijk gestart en werken niet als een multi-agent-systeem.
+Document Chat voert een vaste zoek-en-antwoordketen uit op één document. Retourbeoordeling agent kiest tools voor een fictief retouronderzoek. Documentvergelijking agent kiest zelfstandig tools om de twee geselecteerde documenten te onderzoeken. De agents worden afzonderlijk gestart en werken niet als een multi-agent-systeem.
 
 ### Voorbeelden en lokaal starten
 
@@ -256,7 +256,7 @@ De installatie en startcommando's hierboven blijven gelden. Er zijn geen nieuwe 
 
 Met geactiveerde omgeving werkt ook `python backend/scripts/create_comparison_examples.py`. De PDF's worden lokaal gegenereerd en zijn door Git genegeerd.
 
-1. Kies **Document Comparison** in de webapplicatie.
+1. Kies **Documentvergelijking agent** in de webapplicatie.
 2. Selecteer `examples/refund_policy_2025.pdf` als **Document A** (oud/baseline) en `examples/refund_policy_2026.pdf` als **Document B** (nieuw).
 3. Klik op **Documenten verwerken**. De twee indexen worden pas als paar beschikbaar wanneer beide bestanden succesvol zijn verwerkt.
 4. Vul een vergelijkingsopdracht in, kies de omvang en klik op **Vergelijk documenten**.
@@ -330,7 +330,7 @@ Na upload volgt een request naar `/api/comparisons`. De drie UUID's moeten uit d
 
 Ongeldige requests krijgen `422`; ongeldige uploads gebruiken dezelfde HTTP-foutcodes als gewone PDF-uploads. Een geldig vergelijkingsrequest krijgt een gestructureerde response met status `completed`, `partial`, `insufficient_information`, `limit_reached` of `error`. Operationele fouten, waaronder ontbrekende/vervangen documenten, API-quota en timeouts, staan in `error.code` en `error.message`; HTTP blijft dan `200` om uitgevoerde tools te kunnen tonen. `tool_call_limit` vermeldt het toegepaste budget. Foutresponses tonen geen ongevalideerde bevindingen.
 
-Een wijziging aan Document A of B wist het oude rapport en de lokale paar-ID direct. Een nieuwe upload maakt ook het oude backendpaar ongeldig. Een laat modelantwoord of een oudere upload kan daardoor niet ongemerkt bij het nieuwe paar worden gebruikt. De bestaande Document Chat- en Refund Review-endpoints behouden hun contracten.
+Een wijziging aan Document A of B wist het oude rapport en de lokale paar-ID direct. Een nieuwe upload maakt ook het oude backendpaar ongeldig. Een laat modelantwoord of een oudere upload kan daardoor niet ongemerkt bij het nieuwe paar worden gebruikt. De bestaande Document Chat- en Retourbeoordeling-endpoints behouden hun contracten.
 
 ### Tests en beperkingen
 
@@ -345,9 +345,9 @@ De volledige backendtests, frontendtests en build worden uitgevoerd met de comma
 Er is geen OCR, vaste evaluatieset voor vergelijkingskwaliteit of betrouwbare algemene sectieherkenning. Overzichten zijn paginagebaseerd en begrensd. Grote documenten worden door tool- en contextbudgetten meestal gedeeltelijk onderzocht. Een deadline kan lopende lokale inferentie niet hard onderbreken. De opslag blijft gedeeld per proces en verdwijnt bij een herstart. Verdere uitbreidingen zijn een vaste evaluatieset voor wijzigingen en afwezigheid, paginering van overzichten, betere sectieherkenning en tokenbewuste contextselectie.
 
 
-## Invoice Processing gebruiken
+## Factuurverwerking agent gebruiken
 
-De Invoice Processing Agent onderzoekt één tekstgebaseerde, fictieve PDF-factuur. Hij kiest zelf welke tools de opdracht nodig heeft. De bestaande upload wordt gebruikt; de factuur kan daarna ook in Document Chat worden bekeken. Een vergelijking van twee documenten blijft een afzonderlijke functie.
+De Factuurverwerking agent onderzoekt één tekstgebaseerde, fictieve PDF-factuur. Hij kiest zelf welke tools de opdracht nodig heeft. De bestaande upload wordt gebruikt; de factuur kan daarna ook in Document Chat worden bekeken. Een vergelijking van twee documenten blijft een afzonderlijke functie.
 
 ### Testfacturen en starten
 
@@ -359,7 +359,7 @@ Genereer de vijf nieuwe voorbeelden vanuit de hoofdmap. Bestaande voorbeeld-PDF'
 
 De bestanden staan in `examples/invoices/`; de brongegevens staan daar in `cases.json`. De fictieve PO's staan in `backend/app/fixtures/purchase_orders.json`. De bestaande installatie- en startcommando's blijven gelden; extra dependencies of sleutels zijn niet nodig.
 
-1. Kies **Invoice Processing** en upload een voorbeeld via het bestaande linkerpaneel.
+1. Kies **Factuurverwerking agent** en upload een voorbeeld via het bestaande linkerpaneel.
 2. Gebruik de standaardopdracht voor reken- en PO-controle, of bijvoorbeeld 'Wat is het factuurnummer?' voor alleen extractie.
 3. Bekijk de geëxtraheerde gegevens, daadwerkelijk uitgevoerde controles en PDF-citaten.
 4. Beoordeel het resultaat en markeer het eventueel lokaal als gecontroleerd.
@@ -495,7 +495,7 @@ backend/
     retrieval.py     Vectorvalidatie, normalisatie en FAISS
     llm.py           AnswerGenerator-interface, systeemprompt en antwoordmodel
     gemini.py        Huidige LLM-adapter, SDK-aanroepen en foutvertaling
-    agent.py         Refund Review-service en instructies
+    agent.py         Retourbeoordeling-service en instructies
     agent_loop.py    Gedeelde begrensde tool-loop voor de agents
     chat_retrieval.py Document Chat: gecombineerde rangschikking en naburige bronfragmenten
     comparison.py    Vergelijkingsservice en resultaat-/bewijscontrole
@@ -507,7 +507,7 @@ backend/
     invoice_extraction.py Controle van velden tegen letterlijke PDF-citaten
     invoice_validation.py Deterministische reken- en PO-controles
     invoice_tools.py Vier tools met server-side factuur-/PO-gegevens
-    support.py       Customer Support-service en controle van aanbevelingen en referenties
+    support.py       Klantenservice-service en controle van aanbevelingen en referenties
     support_schemas.py Ticketanalyse, aanbevelingen, bronmetadata en toolargumenten
     support_tools.py Vier read-only tools voor kennisbank, orders, catalogus en richtlijnen
     agent_schemas.py Agentrequests, responses en gevalideerde toolargumenten
@@ -599,7 +599,7 @@ Document Chat combineert deze semantische rangschikking met lokale woordoverlap 
 
 ### 4. LLM en antwoordvalidatie
 
-In Document Chat gaan alleen de huidige vraag en de geselecteerde context vanuit de backend naar de LLM. Eerdere chatberichten worden niet meegestuurd. Zonder semantische of letterlijke zoekresultaten retourneert de backend direct een vast antwoord over onvoldoende informatie, zonder LLM-aanroep. Ook bij gevonden passages moet de LLM melden wanneer het gevraagde feit ontbreekt. Refund Review blijft voor `search_policy` de bestaande `RAGService.search`-functie en FAISS-index gebruiken.
+In Document Chat gaan alleen de huidige vraag en de geselecteerde context vanuit de backend naar de LLM. Eerdere chatberichten worden niet meegestuurd. Zonder semantische of letterlijke zoekresultaten retourneert de backend direct een vast antwoord over onvoldoende informatie, zonder LLM-aanroep. Ook bij gevonden passages moet de LLM melden wanneer het gevraagde feit ontbreekt. Retourbeoordeling agent blijft voor `search_policy` de bestaande `RAGService.search`-functie en FAISS-index gebruiken.
 
 De huidige adapter gebruikt de officiële `google-genai`-SDK, een afzonderlijke systeeminstructie en gestructureerde JSON-output met `answer`, `cited_chunk_ids` en `sufficient_context`. Pydantic valideert de antwoordstructuur.
 
@@ -615,7 +615,7 @@ Alleen `GEMINI_MODEL` wijzigen schakelt niet naar een andere provider: de huidig
 
 De agents gebruiken `GeminiAgentModel`, met eigen prompts en tools, in dezelfde providermodule. Een andere provider voor de agent vereist ook een vervangende `AgentModel.next_turn`-adapter. De huidige agentinterface gebruikt de conversatietypen uit de Google SDK, inclusief behoud van tool-call-ID's en thought signatures.
 
-## Refund Review: tools en agent-loop
+## Retourbeoordeling agent: tools en agent-loop
 
 | Tool | Argumenten | Resultaat |
 | --- | --- | --- |
@@ -640,7 +640,7 @@ flowchart TD
 
 De bestaande `google-genai` 2.x-SDK voert `models.generate_content` uit met expliciete function declarations en `AUTO`-toolkeuze. SDK-autodispatch staat uit: alleen de eigen service voert tools uit. Volledige modelberichten worden teruggestuurd, inclusief oorspronkelijke thought signatures en gekoppelde function-call-ID's. De aanpak volgt de officiële documentatie voor [handmatige function calling](https://ai.google.dev/gemini-api/docs/generate-content/function-calling) en de [Python-SDK](https://googleapis.github.io/python-genai/).
 
-Per Refund Review-aanvraag gelden maximaal **vijf toolpogingen**, inclusief ongeldige argumenten en geblokkeerde tools. Ook meerdere calls binnen één modelbericht tellen afzonderlijk. Na vijf pogingen wordt de modelconfiguratie op `NONE` gezet voor toolgebruik; een alsnog aangevraagde zesde call wordt niet uitgevoerd. Er zijn daardoor maximaal zes modelbeurten, inclusief de eventuele slotbeurt. Een modelbeurt kan wel meerdere tools aanvragen.
+Per Retourbeoordeling-aanvraag gelden maximaal **vijf toolpogingen**, inclusief ongeldige argumenten en geblokkeerde tools. Ook meerdere calls binnen één modelbericht tellen afzonderlijk. Na vijf pogingen wordt de modelconfiguratie op `NONE` gezet voor toolgebruik; een alsnog aangevraagde zesde call wordt niet uitgevoerd. Er zijn daardoor maximaal zes modelbeurten, inclusief de eventuele slotbeurt. Een modelbeurt kan wel meerdere tools aanvragen.
 
 Iedere modelaanroep gebruikt de kleinste waarde van de resterende agenttijd en `GEMINI_TIMEOUT_SECONDS`. De totale deadline wordt vóór en na model- en toolstappen gecontroleerd. Een lopende lokale embeddingbewerking wordt niet geforceerd afgebroken; een verlopen deadline wordt na terugkeer verwerkt.
 
@@ -656,7 +656,7 @@ De backend logt op INFO-niveau alleen de bekende toolnaam en de status via `uvic
 | `GEMINI_MODEL` | `gemini-3.5-flash-lite` | Modelnaam voor de huidige LLM-adapter |
 | `GEMINI_TIMEOUT_SECONDS` | `45` | Timeout per LLM-aanroep; maximaal 180 seconden |
 | `AGENT_TIMEOUT_SECONDS` | `90` | Totale agentdeadline, gecontroleerd tussen stappen; maximaal 300 seconden |
-| `SUPPORT_MAX_TOOL_CALLS` | `6` | Toolbudget Customer Support; minimaal 1, maximaal 12 |
+| `SUPPORT_MAX_TOOL_CALLS` | `6` | Toolbudget Klantenservice agent; minimaal 1, maximaal 12 |
 | `SUPPORT_TIMEOUT_SECONDS` | `90` | Totale supportdeadline; maximaal 300 seconden |
 | `COMPARISON_MAX_TOOL_CALLS` | `12` | Toolpogingen per vergelijking; toegestaan van 2 tot 24 |
 | `COMPARISON_TIMEOUT_SECONDS` | `120` | Totale vergelijkingsdeadline; maximaal 300 seconden |
@@ -755,7 +755,7 @@ De frontend en backend draaien lokaal op verschillende origins. CORS staat brows
 
 ## Documentlevenscyclus en gegevensverwerking
 
-Er is één actief document voor Document Chat, Refund Review en Invoice Processing, plus één onafhankelijk vergelijkingspaar per backendproces. Alle browservensters delen deze opslag; er zijn geen gebruikerssessies. Een gewone upload wist de eerdere chat, retouranalyse en factuuranalyse, inclusief de lokale reviewmarkering. Een vergelijkingsupload maakt alleen het oude paar ongeldig en installeert een nieuw paar wanneer beide bestanden succesvol zijn verwerkt. Ook een mislukte vervanging maakt het vorige document of paar ongeldig. UUID-revisies en locks blokkeren late uploads. De agents controleren vóór en na model- en toolstappen of hun documentrevisie nog geldig is.
+Er is één actief document voor Document Chat, Retourbeoordeling agent en Factuurverwerking agent, plus één onafhankelijk vergelijkingspaar per backendproces. Alle browservensters delen deze opslag; er zijn geen gebruikerssessies. Een gewone upload wist de eerdere chat, retouranalyse en factuuranalyse, inclusief de lokale reviewmarkering. Een vergelijkingsupload maakt alleen het oude paar ongeldig en installeert een nieuw paar wanneer beide bestanden succesvol zijn verwerkt. Ook een mislukte vervanging maakt het vorige document of paar ongeldig. UUID-revisies en locks blokkeren late uploads. De agents controleren vóór en na model- en toolstappen of hun documentrevisie nog geldig is.
 
 De frontend wist bij een geldige nieuwe bestandskeuze de chat en negeert late antwoorden van het vorige document. Een wijziging aan Document A of B wist het vergelijkingspaar en rapport direct, annuleert het browserverzoek en negeert late resultaten. Annuleren van een browserverzoek stopt een al gestarte LLM-aanroep niet gegarandeerd. PDF-verwerking en synchrone modelaanroepen draaien buiten de ASGI-eventloop in de threadpool.
 
@@ -817,7 +817,7 @@ Automatische tests vereisen geen echte API-sleutel, betaalde requests of downloa
 
 Er is geen afzonderlijke ESLint-configuratie of `npm run lint`-opdracht. TypeScript-controle loopt via de build; de bestaande Prettier-installatie kan geselecteerde bestanden controleren met `npx prettier --check <bestanden>`. Vitest gebruikt jsdom en controleert geen schermgeometrie; responsive opmaak en horizontale overflow moeten aanvullend in een browser worden gecontroleerd.
 
-Alleen de agenttests uitvoeren kan met `.\.venv\Scripts\python.exe -m pytest backend/tests/test_agent.py backend/tests/test_agent_gemini.py -q`. De gemockte modelresponsen testen verschillende toolkeuzes en hun uitvoering; ze bewijzen niet dat een live LLM bij iedere opdracht dezelfde keuze maakt. Voor die controle zijn de bovenstaande opdrachten in Refund Review bedoeld.
+Alleen de agenttests uitvoeren kan met `.\.venv\Scripts\python.exe -m pytest backend/tests/test_agent.py backend/tests/test_agent_gemini.py -q`. De gemockte modelresponsen testen verschillende toolkeuzes en hun uitvoering; ze bewijzen niet dat een live LLM bij iedere opdracht dezelfde keuze maakt. Voor die controle zijn de bovenstaande opdrachten in Retourbeoordeling agent bedoeld.
 
 ## Beperkingen
 
@@ -828,7 +828,7 @@ Alleen de agenttests uitvoeren kan met `.\.venv\Scripts\python.exe -m pytest bac
 - Bron-ID's en metadata worden gecontroleerd, maar de inhoudelijke juistheid van het antwoord wordt niet automatisch bewezen. Er is nog geen vaste evaluatieset voor retrieval- en antwoordkwaliteit.
 - Eerdere chatberichten worden niet als context gebruikt. Vervolgvragen met verwijzingen zoals 'en wanneer gebeurde dat?' kunnen daardoor onvoldoende context hebben.
 - Geen streaming, automatische retries of fallbackprovider. Document Chat heeft een timeout per LLM-aanroep; de agent heeft daarnaast een deadline tussen stappen. Lopende lokale modelbewerkingen worden niet hard afgebroken.
-- Refund Review doet maximaal vijf toolpogingen. Document Comparison gebruikt een eigen configureerbaar budget. Complexe onderzoeken kunnen voortijdig stoppen; iedere modelbeurt verbruikt providerquota en kan bij een betaald project kosten veroorzaken.
+- Retourbeoordeling agent doet maximaal vijf toolpogingen. Documentvergelijking agent gebruikt een eigen configureerbaar budget. Complexe onderzoeken kunnen voortijdig stoppen; iedere modelbeurt verbruikt providerquota en kan bij een betaald project kosten veroorzaken.
 - De agent controleert geen echte retourrechten, klantgegevens of bedrijfsprocessen. Een PDF-bestandsnaam bewijst niet dat het document geschikt of volledig retourbeleid bevat. Alle adviezen blijven concepten voor inhoudelijke controle.
 - De applicatie is ingericht voor lokaal gebruik met één backendproces; productiehosting en gebruik door meerdere gebruikers vereisen aanvullende inrichting.
 

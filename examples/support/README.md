@@ -8,7 +8,7 @@ Genereer de tekstselecteerbare PDF's vanuit de hoofdmap:
 
 - Upload `support_knowledge_base.pdf` voor verzend-, retour- en betaalvragen in één actieve PDF.
 - `shipping_policy.pdf` bevat alleen het verzendbeleid. `customer_service_guidelines.pdf` is de leesbare versie van de expliciete JSON-richtlijnen.
-- Open **AI Agents → E-commerce & Customer Service → Customer Support Agent**.
+- Open **AI Agents → E-commerce & klantenservice → Klantenservice agent**.
 - Kopieer een `customer_message` uit `tickets.json`; vul indien gewenst de bijbehorende order-ID of product-ID in.
 - Een productvraag zoals `LAP-204` kan zonder PDF worden onderzocht. Zonder bedrijfsdocument mag de agent geen bedrijfsvoorwaarden verzinnen.
 - `expected_tools` zijn scenarioverwachtingen voor handmatige controle; een live model mag andere relevante tools kiezen. De agent voert niet automatisch de hele lijst uit.

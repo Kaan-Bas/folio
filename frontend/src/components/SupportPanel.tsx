@@ -63,7 +63,7 @@ export function SupportPanel({
     })
   }
   return (
-    <section className="chat-panel" aria-label="Customer Support Agent">
+    <section className="chat-panel" aria-label="Klantenservice agent">
       <div className="chat-toolbar">
         <div>
           <span className={`status-dot ${document ? 'active' : ''}`} />

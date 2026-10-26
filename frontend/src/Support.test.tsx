@@ -39,7 +39,7 @@ beforeEach(() => {
 async function open() {
   const user = userEvent.setup()
   render(<App />)
-  await openAgent(user, 'Customer Support Agent')
+  await openAgent(user, 'Klantenservice agent')
   return user
 }
 
@@ -57,14 +57,14 @@ async function upload() {
   await screen.findByText('kennisbank.pdf')
 }
 
-describe('Customer Support Agent', () => {
+describe('Klantenservice agent', () => {
   it('is registered next to Refund Review without an additional main navigation entry', async () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole('link', { name: 'AI Agents' }))
-    const category = await screen.findByRole('region', { name: 'E-commerce & Customer Service' })
-    expect(within(category).getByRole('link', { name: 'Customer Support Agent' })).toBeVisible()
-    expect(within(category).getByRole('link', { name: 'Refund Review Agent' })).toBeVisible()
+    const category = await screen.findByRole('region', { name: 'E-commerce & klantenservice' })
+    expect(within(category).getByRole('link', { name: 'Klantenservice agent' })).toBeVisible()
+    expect(within(category).getByRole('link', { name: 'Retourbeoordeling agent' })).toBeVisible()
     expect(
       within(screen.getByRole('list', { name: 'Hoofdonderdelen' })).getAllByRole('listitem'),
     ).toHaveLength(2)
@@ -199,8 +199,8 @@ describe('Customer Support Agent', () => {
       screen.getByLabelText('Ik heb categorie, prioriteit, escalatie en antwoord gecontroleerd.'),
     )
     await user.click(screen.getByRole('link', { name: 'Terug naar AI Agents' }))
-    await user.click(await screen.findByRole('link', { name: 'Customer Support Agent' }))
-    await screen.findByRole('heading', { level: 1, name: /^Customer Support Agent/ })
+    await user.click(await screen.findByRole('link', { name: 'Klantenservice agent' }))
+    await screen.findByRole('heading', { level: 1, name: /^Klantenservice/ })
     expect(screen.getByLabelText('Conceptantwoord voor de klant')).toHaveValue(
       supportResult.analysis!.suggested_customer_response + ' Extra toelichting.',
     )

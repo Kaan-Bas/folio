@@ -3,21 +3,21 @@ import type { IconName } from './components/Icon'
 export const agentCategories = [
   {
     id: 'general-productivity',
-    name: 'General & Productivity',
+    name: 'Algemeen & productiviteit',
     description: 'Meer overzicht in documenten, kennis en dagelijkse werkzaamheden.',
     icon: 'layers',
     displayOrder: 1,
   },
   {
     id: 'ecommerce-customer-service',
-    name: 'E-commerce & Customer Service',
+    name: 'E-commerce & klantenservice',
     description: 'Ondersteuning bij klantvragen, bestellingen en retourbeleid.',
     icon: 'cart',
     displayOrder: 2,
   },
   {
     id: 'finance-administration',
-    name: 'Finance & Administration',
+    name: 'Financiën & administratie',
     description: 'Inzicht in financiële documenten, berekeningen en administratie.',
     icon: 'receipt',
     displayOrder: 3,
@@ -45,7 +45,7 @@ export interface AgentDefinition {
 export const agents = [
   {
     id: 'document-comparison',
-    name: 'Document Comparison Agent',
+    name: 'Documentvergelijking agent',
     description:
       'Vergelijk documenten, herken wijzigingen en ontdek inhoudelijke verschillen met AI.',
     category: 'general-productivity',
@@ -54,7 +54,7 @@ export const agents = [
   },
   {
     id: 'refund-review',
-    name: 'Refund Review Agent',
+    name: 'Retourbeoordeling agent',
     description:
       'Onderzoek retourverzoeken aan de hand van bedrijfsbeleid en fictieve bestelgegevens.',
     category: 'ecommerce-customer-service',
@@ -63,7 +63,7 @@ export const agents = [
   },
   {
     id: 'invoice-processing',
-    name: 'Invoice Processing Agent',
+    name: 'Factuurverwerking agent',
     description:
       'Extraheer factuurgegevens, controleer berekeningen en vergelijk met fictieve inkooporders.',
     category: 'finance-administration',
@@ -72,7 +72,7 @@ export const agents = [
   },
   {
     id: 'customer-support',
-    name: 'Customer Support Agent',
+    name: 'Klantenservice agent',
     description:
       'Analyze customer inquiries, retrieve relevant information, classify support tickets, and generate context-aware response suggestions.',
     category: 'ecommerce-customer-service',

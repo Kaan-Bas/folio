@@ -116,7 +116,7 @@ beforeEach(() => {
 async function openComparison() {
   const user = userEvent.setup()
   render(<App />)
-  await openAgent(user, 'Document Comparison Agent')
+  await openAgent(user, 'Documentvergelijking agent')
   return user
 }
 
@@ -265,9 +265,9 @@ describe('Document Comparison', () => {
     await uploadBoth(user)
     await user.click(screen.getByRole('button', { name: 'Vergelijk documenten' }))
     await screen.findByText(report.summary)
-    await openAgent(user, 'Refund Review Agent')
+    await openAgent(user, 'Retourbeoordeling agent')
     expect(screen.getByRole('button', { name: 'Onderzoek starten' })).toBeDisabled()
-    await openAgent(user, 'Document Comparison Agent')
+    await openAgent(user, 'Documentvergelijking agent')
     expect(screen.getByText(report.summary)).toBeInTheDocument()
   })
 

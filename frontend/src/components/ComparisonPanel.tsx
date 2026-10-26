@@ -97,7 +97,7 @@ export function ComparisonPanel({ model: c }: { model: ReturnType<typeof useComp
           </button>
         </form>
       </aside>
-      <section className="chat-panel" aria-label="Document Comparison Agent">
+      <section className="chat-panel" aria-label="Documentvergelijking agent">
         <div className="chat-toolbar">
           <div>
             <span className={`status-dot ${c.pair ? 'active' : ''}`} />
@@ -107,7 +107,7 @@ export function ComparisonPanel({ model: c }: { model: ReturnType<typeof useComp
                 ? 'Twee documentindexen beschikbaar'
                 : 'Upload Document A en B'}
           </div>
-          <span className="context-label">DOCUMENT COMPARISON</span>
+          <span className="context-label">DOCUMENTVERGELIJKING</span>
         </div>
         <div className="agent-content comparison-content">
           {c.result && (

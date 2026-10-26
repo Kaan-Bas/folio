@@ -41,7 +41,7 @@ export function AgentPanel({ document, busy, result, error, pdfUrl, onRun }: Pro
   }
 
   return (
-    <section className="chat-panel" aria-label="AI Agent voor retouronderzoek">
+    <section className="chat-panel" aria-label="Retourbeoordeling agent">
       <div className="chat-toolbar">
         <div>
           <span className={`status-dot ${document ? 'active' : ''}`} />

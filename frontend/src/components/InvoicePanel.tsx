@@ -41,7 +41,7 @@ export function InvoicePanel({
   const data = result?.invoice_data
   const canExport = !!data && result?.review_status !== 'error'
   return (
-    <section className="chat-panel" aria-label="Invoice Processing Agent">
+    <section className="chat-panel" aria-label="Factuurverwerking agent">
       <div className="chat-toolbar">
         <div>
           <span className={`status-dot ${document ? 'active' : ''}`} />
