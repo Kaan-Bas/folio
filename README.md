@@ -495,6 +495,5 @@ Deze tests bewijzen geen live modeltoegang, kwaliteit op willekeurige documenten
 - Factuuranalyse ondersteunt fictieve tekstfacturen met maximaal twintig regels, één btw-percentage en EUR-controles met centafronding. Geen creditnota's, kortingslogica, meerdere btw-tarieven, wisselkoersen of duplicaatdetectie.
 - Fictieve bedrijfsgegevens zijn snapshots. Geen actuele voorraad, echte contacthistorie, ticketopslag, webshop- of boekhoudintegratie.
 - Geen streaming, automatische retries of fallbackprovider. Agentlimieten kunnen onderzoeken onderbreken; lokale modelbewerkingen worden niet hard afgebroken.
-- Nog geen vaste evaluatieset voor live retrieval-, extractie-, classificatie- en antwoordkwaliteit. Automatische mocks vervangen geen inhoudelijke evaluatie.
 
 Mogelijke vervolgstappen zijn OCR, chunking op zinnen of tokens, reranking, een vaste evaluatieset, geïsoleerde documenten per gebruiker, streaming van toolstatussen en duurzame opslag van menselijke correcties.
